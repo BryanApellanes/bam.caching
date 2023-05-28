@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net7.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Javascript\**" />
+    <EmbeddedResource Remove="Javascript\**" />
+    <None Remove="Javascript\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\bam.logging\bam.logging\bam.logging\bam.logging.csproj" />
+    <ProjectReference Include="..\..\bam.base\bam.base\bam.base.csproj" />
+    <ProjectReference Include="..\..\bam.data.repositories\bam.data.repositories\bam.data.repositories.csproj" />
+    <ProjectReference Include="..\..\bam.data\bam.data\bam.data.csproj" />
+    <ProjectReference Include="..\..\bam.javascript\bam.javascript\bam.javascript.csproj" />
+  </ItemGroup>
+
+</Project>
