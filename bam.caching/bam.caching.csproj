@@ -13,7 +13,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\bam.logging\bam.logging\bam.logging\bam.logging.csproj" />
     <ProjectReference Include="..\..\bam.base\bam.base\bam.base.csproj" />
     <ProjectReference Include="..\..\bam.data.repositories\bam.data.repositories\bam.data.repositories.csproj" />
     <ProjectReference Include="..\..\bam.data\bam.data\bam.data.csproj" />
