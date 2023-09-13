@@ -7,17 +7,16 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.IO;
-using Bam.Net;
 using System.Collections.Concurrent;
 using Bam.Net.CommandLine;
 using Bam.Caching;
 
 namespace Bam.Net.Caching.File
 {
-	/// <summary>
-	/// A caching mechanism for files. 
-	/// </summary>
-	public abstract class FileCache: IFileCache
+    /// <summary>
+    /// A caching mechanism for files. 
+    /// </summary>
+    public abstract class FileCache: IFileCache
 	{
         static readonly object _lock = new object();
         static ConcurrentDictionary<string, CachedFile> _cachedFiles;

@@ -12,7 +12,7 @@ using Bam.Net.Logging;
 
 namespace Bam.Net.Caching
 {
-	public class CacheManager : Loggable, ICacheManager
+    public class CacheManager : Loggable, ICacheManager
     {
 	    readonly ConcurrentDictionary<Type, Cache> _cacheDictionary;
 		public CacheManager(uint maxCacheSizeBytes = 524288000) // 500 megabytes
