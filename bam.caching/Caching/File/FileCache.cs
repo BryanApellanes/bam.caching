@@ -8,8 +8,8 @@ using System.Text;
 using System.Threading.Tasks;
 using System.IO;
 using System.Collections.Concurrent;
-using Bam.Net.CommandLine;
 using Bam.Caching;
+using Bam.Console;
 
 namespace Bam.Net.Caching.File
 {

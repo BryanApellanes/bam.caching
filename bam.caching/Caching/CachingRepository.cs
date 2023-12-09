@@ -11,6 +11,7 @@ using Bam.Net.Data.Repositories;
 using System.Collections;
 using Bam.Net.Data;
 using System.Reflection;
+using Bam.Net.Data.Schema;
 
 namespace Bam.Net.Caching
 {
@@ -61,7 +62,7 @@ namespace Bam.Net.Caching
             ValidateTypes();
         }
 
-        public CachingRepository(IDatabase database, ILogger logger = null) : this(new DaoRepository(database, logger), logger)
+        public CachingRepository(ISchemaProvider schemaGenerator, IDaoGenerator daoGenerator, IWrapperGenerator wrapperGenerator, IDatabase? database = null, ILogger? logger = null) : this(new DaoRepository(schemaGenerator, daoGenerator, wrapperGenerator, database, logger), logger)
 	    {
 	    }
         
