@@ -121,7 +121,7 @@ namespace Bam.Net.Caching.File
             {
                 if (HashChanged(file))
                 {
-                    Task.Run(() => Message.Log("FileCache: {0} hash changed, reloading file.", file.FullName));
+                    Task.Run(() => Logging.Log.Default.Info("FileCache: {0} hash changed, reloading file.", file.FullName));
                     Reload(file);
                 }
             });
