@@ -6,14 +6,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Bam.Net.Logging;
-using Bam.Net.Data.Repositories;
+using Bam.Logging;
+using Bam.Data.Repositories;
 using System.Collections;
-using Bam.Net.Data;
+using Bam.Data;
 using System.Reflection;
-using Bam.Net.Data.Schema;
+using Bam.Data.Schema;
 
-namespace Bam.Net.Caching
+namespace Bam.Caching
 {
     public class CachingRepository<T>: CachingRepository where T : class, IRepository
     {

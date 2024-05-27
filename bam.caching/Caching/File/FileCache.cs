@@ -11,7 +11,7 @@ using System.Collections.Concurrent;
 using Bam.Caching;
 using Bam.Console;
 
-namespace Bam.Net.Caching.File
+namespace Bam.Caching.File
 {
     /// <summary>
     /// A caching mechanism for files. 

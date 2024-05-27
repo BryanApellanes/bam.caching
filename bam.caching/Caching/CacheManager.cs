@@ -7,10 +7,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Bam.Net.Data.Repositories;
-using Bam.Net.Logging;
+using Bam.Data.Repositories;
+using Bam.Logging;
 
-namespace Bam.Net.Caching
+namespace Bam.Caching
 {
     public class CacheManager : Loggable, ICacheManager
     {

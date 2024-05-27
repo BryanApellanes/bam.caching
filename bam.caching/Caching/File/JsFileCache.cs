@@ -4,14 +4,14 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Bam.Net.Javascript;
+using Bam.Javascript;
 
-namespace Bam.Net.Caching.File
+namespace Bam.Caching.File
 {
     /// <summary>
     /// 
     /// </summary>
-    /// <seealso cref="Bam.Net.Caching.File.TextFileCache" />
+    /// <seealso cref="Bam.Caching.File.TextFileCache" />
     public class JsFileCache: TextFileCache
     {
         Dictionary<string, MinifyResult> _minCache;

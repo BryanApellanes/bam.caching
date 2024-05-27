@@ -1,11 +1,11 @@
-﻿using Bam.Net.Data;
+﻿using Bam.Data;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Bam.Net.Caching
+namespace Bam.Caching
 {
     /// <summary>
     /// 

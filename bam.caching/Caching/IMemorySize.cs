@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Bam.Net.Caching
+namespace Bam.Caching
 {
     /// <summary>
     /// When implemented, provides a mechanism to report

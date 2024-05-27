@@ -7,18 +7,18 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Threading;
-using Bam.Net.Logging;
-using Bam.Net.Data.Repositories;
+using Bam.Logging;
+using Bam.Data.Repositories;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 
-namespace Bam.Net.Caching
+namespace Bam.Caching
 {
     /// <summary>
     /// 
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    /// <seealso cref="Bam.Net.Caching.Cache" />
+    /// <seealso cref="Bam.Caching.Cache" />
     public class Cache<T>: Cache where T: IMemorySize, new()
     {
         /// <summary>
@@ -67,7 +67,7 @@ namespace Bam.Net.Caching
     /// <summary>
     /// An object cache
     /// </summary>
-    /// <seealso cref="Bam.Net.Caching.Cache" />
+    /// <seealso cref="Bam.Caching.Cache" />
     public class Cache: Loggable
 	{
 		bool _keepGrooming;
@@ -111,7 +111,7 @@ namespace Bam.Net.Caching
 			ItemsById = new Dictionary<ulong, CacheItem>();
             ItemsByUuid = new Dictionary<string, CacheItem>();
             ItemsByName = new Dictionary<string, CacheItem>();
-			MetaProvider = Bam.Net.Data.Repositories.MetaProvider.Default;
+			MetaProvider = Bam.Data.Repositories.MetaProvider.Default;
 			
 			Name = name;
 			MaxBytes = maxBytes;

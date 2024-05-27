@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Bam.Caching;
 
-namespace Bam.Net.Caching
+namespace Bam.Caching
 {
     public static class StringExtensions
     {

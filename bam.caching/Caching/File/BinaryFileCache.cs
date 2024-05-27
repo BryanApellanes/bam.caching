@@ -4,12 +4,12 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Bam.Net.Caching.File
+namespace Bam.Caching.File
 {
     /// <summary>
     /// A class representing a cached binary file.
     /// </summary>
-    /// <seealso cref="Bam.Net.Caching.File.FileCache" />
+    /// <seealso cref="Bam.Caching.File.FileCache" />
     public class BinaryFileCache : FileCache
     {
         /// <summary>

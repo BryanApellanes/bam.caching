@@ -7,17 +7,17 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Reflection;
-using Bam.Net;
-using Bam.Net.Data;
-using Bam.Net.Data.Repositories;
+using Bam;
+using Bam.Data;
+using Bam.Data.Repositories;
 
-namespace Bam.Net.Caching
+namespace Bam.Caching
 {
     /// <summary>
     /// Represents an item in a cache.
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    /// <seealso cref="Bam.Net.Caching.CacheItem" />
+    /// <seealso cref="Bam.Caching.CacheItem" />
     [Serializable]
     public class CacheItem<T>: CacheItem where T: IMemorySize, new()
     {
@@ -50,7 +50,7 @@ namespace Bam.Net.Caching
     /// <summary>
     /// 
     /// </summary>
-    /// <seealso cref="Bam.Net.Caching.CacheItem" />
+    /// <seealso cref="Bam.Caching.CacheItem" />
     [Serializable]
 	public class CacheItem
 	{

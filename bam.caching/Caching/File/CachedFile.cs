@@ -5,10 +5,10 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Bam.Net.Logging;
+using Bam.Logging;
 using Bam.Caching;
 
-namespace Bam.Net.Caching.File
+namespace Bam.Caching.File
 {
     /// <summary>
     /// A class representing a cached file.
