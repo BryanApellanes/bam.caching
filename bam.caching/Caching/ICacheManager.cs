@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Bam.Caching
+﻿namespace Bam.Caching
 {
     public interface ICacheManager
     {

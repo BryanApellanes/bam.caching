@@ -1,12 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using Bam.Logging;
-using Bam.Caching;
+﻿using Bam.Logging;
 
 namespace Bam.Caching.File
 {

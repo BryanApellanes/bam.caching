@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Bam.Caching.File
+﻿namespace Bam.Caching.File
 {
     /// <summary>
     /// A class representing a cached binary file.

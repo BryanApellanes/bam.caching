@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Bam.Caching
+﻿namespace Bam.Caching
 {
     /// <summary>
     /// When implemented, provides a mechanism to report

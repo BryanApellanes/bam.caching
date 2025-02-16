@@ -1,14 +1,9 @@
 /*
 	Copyright © Bryan Apellanes 2015  
 */
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+
 using Bam.Logging;
 using Bam.Data.Repositories;
-using System.Collections;
 using Bam.Data;
 using System.Reflection;
 using Bam.Data.Schema;
