@@ -24,3 +24,5 @@ is this additional overhead important? Well, let�s imagine we have
 a class with two Int32 members; in this case, the memory requirement
 is 16 bytes and not 8.
 ```
+
+alternatively the objects could be formatted into base64 when stored in the cache
