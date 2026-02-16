@@ -5,7 +5,7 @@
 namespace Bam.Caching
 {
     /// <summary>
-    /// 
+    /// Event arguments for cache eviction events, containing the cache and the evicted items.
     /// </summary>
     /// <seealso cref="System.EventArgs" />
     public class CacheEvictionEventArgs: EventArgs

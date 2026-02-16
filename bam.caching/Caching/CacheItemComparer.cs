@@ -3,7 +3,7 @@
 namespace Bam.Caching
 {
     /// <summary>
-    /// 
+    /// Compares <see cref="CacheItem"/> instances by their hit or miss count, with configurable sort order.
     /// </summary>
     public class CacheItemComparer : IComparer<CacheItem>
     {

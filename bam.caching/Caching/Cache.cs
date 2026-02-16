@@ -10,9 +10,9 @@ using System.Diagnostics;
 namespace Bam.Caching
 {
     /// <summary>
-    /// 
+    /// A typed object cache that stores items implementing <see cref="IMemorySize"/> with automatic memory management.
     /// </summary>
-    /// <typeparam name="T"></typeparam>
+    /// <typeparam name="T">The type of items to cache. Must implement <see cref="IMemorySize"/> and have a parameterless constructor.</typeparam>
     /// <seealso cref="Bam.Caching.Cache" />
     public class Cache<T>: Cache where T: IMemorySize, new()
     {
@@ -21,6 +21,13 @@ namespace Bam.Caching
         /// </summary>
         public Cache() : base() { }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Cache{T}"/> class with the specified configuration.
+        /// </summary>
+        /// <param name="name">The name of the cache.</param>
+        /// <param name="maxBytes">The maximum size of the cache in bytes.</param>
+        /// <param name="groomInBackground">If true, starts a background thread to evict items when the cache exceeds max size.</param>
+        /// <param name="evictionListener">An optional event handler invoked when items are evicted.</param>
         public Cache(string name, uint maxBytes, bool groomInBackground, EventHandler evictionListener = null)
 			: base(name, maxBytes, groomInBackground, evictionListener)
         {
@@ -36,6 +43,12 @@ namespace Bam.Caching
             return (CacheItem<T>)Add<T>(values);
         }
 
+        /// <summary>
+        /// Adds the specified values to the cache as typed cache items.
+        /// </summary>
+        /// <typeparam name="TCacheItem">The type of items to add.</typeparam>
+        /// <param name="values">The values to add to the cache.</param>
+        /// <returns>An enumerable of <see cref="CacheItem{TCacheItem}"/> for each newly added item.</returns>
         public new IEnumerable<CacheItem<TCacheItem>> Add<TCacheItem>(params TCacheItem[] values) where TCacheItem: IMemorySize, new()
         {
             List<CacheItem> results = new List<CacheItem>();
@@ -53,6 +66,10 @@ namespace Bam.Caching
             GroomerSignal.Set();
         }
 
+        /// <summary>
+        /// Gets the default cache for the type <typeparamref name="T"/> from the default <see cref="CacheManager"/>.
+        /// </summary>
+        /// <returns>The <see cref="Cache{T}"/> instance.</returns>
         public static Cache<T> Get()
         {
 	        return CacheManager.Default.CacheFor<T>(CacheManager.Default.GetDefaultCacheProvider<T>());
@@ -125,6 +142,11 @@ namespace Bam.Caching
 			}
 		}
 
+        /// <summary>
+        /// Gets the default cache for the specified type from the default <see cref="CacheManager"/>.
+        /// </summary>
+        /// <typeparam name="T">The type of items in the cache.</typeparam>
+        /// <returns>The <see cref="Cache{T}"/> instance.</returns>
         public static Cache<T> For<T>() where T: IMemorySize, new()
         {
 	        return Cache<T>.Get();
@@ -315,6 +337,12 @@ namespace Bam.Caching
             return item;
         }
 
+        /// <summary>
+        /// Adds all items from the specified enumerable to the cache.
+        /// </summary>
+        /// <typeparam name="T">The type of items to add.</typeparam>
+        /// <param name="values">The items to add.</param>
+        /// <returns>An enumerable of <see cref="CacheItem"/> instances for each newly added item.</returns>
 		public virtual IEnumerable<CacheItem> Add<T>(IEnumerable<T> values)
 		{
 			return Add(values.ToArray());
@@ -342,6 +370,11 @@ namespace Bam.Caching
             GroomerSignal.Set();
         }
 
+        /// <summary>
+        /// Queries the cache using a predicate on item values. Matching items have their hit count incremented; non-matching items have their miss count incremented.
+        /// </summary>
+        /// <param name="predicate">The predicate to test each cached value against.</param>
+        /// <returns>An enumerable of matching <see cref="CacheItem"/> instances.</returns>
         public IEnumerable<CacheItem> Query(Predicate<object> predicate)
         {
             HashSet<CacheItem> itemsCopy = new HashSet<CacheItem>(Items);
@@ -359,6 +392,11 @@ namespace Bam.Caching
             }
         }
 
+        /// <summary>
+        /// Queries the cache using a predicate on cache items. Matching items have their hit count incremented; non-matching items have their miss count incremented.
+        /// </summary>
+        /// <param name="predicate">The predicate to test each cache item against.</param>
+        /// <returns>An enumerable of matching <see cref="CacheItem"/> instances.</returns>
         public IEnumerable<CacheItem> Query(Func<CacheItem, bool> predicate)
         {
             HashSet<CacheItem> itemsCopy = new HashSet<CacheItem>(Items);
@@ -376,6 +414,12 @@ namespace Bam.Caching
             }
         }
 
+        /// <summary>
+        /// Queries the cache for items of the specified type matching the predicate. Hit and miss counts are tracked.
+        /// </summary>
+        /// <typeparam name="T">The type to cast cached values to.</typeparam>
+        /// <param name="predicate">The predicate to test each value against.</param>
+        /// <returns>An enumerable of matching values of type <typeparamref name="T"/>.</returns>
         public IEnumerable<T> Query<T>(Func<T, bool> predicate)
         {
             HashSet<CacheItem> itemsCopy = new HashSet<CacheItem>(Items);
@@ -393,6 +437,14 @@ namespace Bam.Caching
             }
         }
 
+        /// <summary>
+        /// Queries the cache for items matching the predicate, falling back to the source retriever if no results are found. Optionally refreshes the cache from source in the background.
+        /// </summary>
+        /// <typeparam name="T">The type to cast cached values to.</typeparam>
+        /// <param name="predicate">The predicate to test each value against.</param>
+        /// <param name="sourceRetriever">A function that retrieves items from the backing source if the cache has no matches.</param>
+        /// <param name="refresh">If true and cache results were found, refreshes the cache from source asynchronously.</param>
+        /// <returns>An enumerable of matching values of type <typeparamref name="T"/>.</returns>
         public IEnumerable<T> Query<T>(Func<T, bool> predicate, Func<IEnumerable<T>> sourceRetriever, bool refresh = true)
         {
             IEnumerable<T> results = Query<T>(predicate);
@@ -408,21 +460,33 @@ namespace Bam.Caching
             return results;
         }
 
+        /// <summary>
+        /// Occurs when items are evicted from the cache.
+        /// </summary>
         [Verbosity(VerbosityLevel.Information, SenderMessageFormat="Evicted ({LastEvictionCount}) items from cache named {Name}")]
 		public event EventHandler Evicted;
 
+        /// <summary>
+        /// Gets the number of items evicted in the most recent eviction operation.
+        /// </summary>
 		public int LastEvictionCount
 		{
 			get;
 			private set;
 		}
 
+        /// <summary>
+        /// Gets or sets the name of this cache.
+        /// </summary>
 		public string Name
 		{
 			get;
 			set;
 		}
 
+        /// <summary>
+        /// Gets the total memory size in bytes of all items currently in the cache.
+        /// </summary>
 		public uint ItemsMemorySize
 		{
 			get
@@ -489,6 +553,10 @@ namespace Bam.Caching
 		}
 
 		readonly object _queueLock = new object();
+        /// <summary>
+        /// Queues a cache item for eviction by its numeric ID. The item will be evicted on the next groom cycle.
+        /// </summary>
+        /// <param name="id">The numeric ID of the item to evict.</param>
 		public void QueueEviction(long id)
 		{
 			lock(_queueLock)
@@ -498,6 +566,10 @@ namespace Bam.Caching
 			GroomerSignal.Set();
 		}
 
+        /// <summary>
+        /// Queues a cache item for eviction by its UUID. The item will be evicted on the next groom cycle.
+        /// </summary>
+        /// <param name="uuid">The UUID of the item to evict.</param>
 		public void QueueEviction(string uuid)
 		{
 			lock (_queueLock)
@@ -507,16 +579,28 @@ namespace Bam.Caching
 			GroomerSignal.Set();
 		}
 
+        /// <summary>
+        /// Immediately evicts the cache item with the specified numeric ID.
+        /// </summary>
+        /// <param name="id">The numeric ID of the item to evict.</param>
 		public void Evict(long id)
 		{
 			Evict(Retrieve(id));
 		}
 
+        /// <summary>
+        /// Immediately evicts the cache item with the specified UUID.
+        /// </summary>
+        /// <param name="uuid">The UUID of the item to evict.</param>
 		public void Evict(string uuid)
 		{
 			Evict(Retrieve(uuid));
 		}
 
+        /// <summary>
+        /// Immediately evicts the specified cache item and fires the <see cref="Evicted"/> event.
+        /// </summary>
+        /// <param name="item">The cache item to evict.</param>
         public void Evict(CacheItem item)
         {
             HashSet<CacheItem> itemsCopy = new HashSet<CacheItem>(Items.Where(ci => !ci.Equals(item)));
@@ -573,6 +657,10 @@ namespace Bam.Caching
             FireEvent(Evicted, new CacheEvictionEventArgs { Cache = this, EvictedItems = removed.ToArray() });
         }
 
+        /// <summary>
+        /// Evicts all cache items whose values match the specified predicate and fires the <see cref="Evicted"/> event.
+        /// </summary>
+        /// <param name="predicate">A function that returns true for items that should be evicted.</param>
 		public void Evict(Func<object, bool> predicate)
 		{
             HashSet<CacheItem> itemsCopy = new HashSet<CacheItem>(Items);

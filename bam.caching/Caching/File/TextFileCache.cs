@@ -3,7 +3,7 @@
 namespace Bam.Caching.File
 {
     /// <summary>
-    /// 
+    /// A file cache for text files that restricts operations to the configured file extension.
     /// </summary>
     /// <seealso cref="Bam.Caching.File.FileCache" />
     public class TextFileCache: FileCache

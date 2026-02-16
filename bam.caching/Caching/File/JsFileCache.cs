@@ -4,7 +4,7 @@ using Bam.Javascript;
 namespace Bam.Caching.File
 {
     /// <summary>
-    /// 
+    /// A file cache for JavaScript files that supports optional minification.
     /// </summary>
     /// <seealso cref="Bam.Caching.File.TextFileCache" />
     public class JsFileCache: TextFileCache

@@ -1,7 +1,7 @@
 ﻿namespace Bam.Caching.File
 {
     /// <summary>
-    /// 
+    /// Defines methods for caching file content, including raw bytes, text, and compressed variants.
     /// </summary>
     public interface IFileCache
     {

@@ -2,8 +2,15 @@
 
 namespace Bam.Caching
 {
+    /// <summary>
+    /// Event arguments for cache query events, containing the query filter and results.
+    /// </summary>
+    /// <typeparam name="T">The type of query results.</typeparam>
     public class CacheQueryEventArgs<T>: EventArgs
     {
+        /// <summary>
+        /// Gets or sets the type that was queried.
+        /// </summary>
         public Type Type { get; set; }
 
         /// <summary>
@@ -13,6 +20,9 @@ namespace Bam.Caching
         /// </summary>
         public IQueryFilter QueryFilter { get; set; }
 
+        /// <summary>
+        /// Gets or sets the results of the query.
+        /// </summary>
         public IEnumerable<T> Results{ get; set; }
     }
 }

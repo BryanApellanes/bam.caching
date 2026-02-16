@@ -41,7 +41,7 @@ namespace Bam.Caching
     }
 
     /// <summary>
-    /// 
+    /// Represents a non-generic item stored in a cache, tracking hits, misses, and serialized value data.
     /// </summary>
     /// <seealso cref="Bam.Caching.CacheItem" />
     [Serializable]
@@ -71,24 +71,36 @@ namespace Bam.Caching
         /// </value>
         protected Meta Meta { get; set; }
 
+        /// <summary>
+        /// Gets or sets the numeric ID of the cached value.
+        /// </summary>
 		public ulong Id
 		{
 			get;
 			set;
 		}
 
+        /// <summary>
+        /// Gets or sets the UUID of the cached value.
+        /// </summary>
 		public string Uuid
 		{
 			get;
 			set;
 		}
 
+        /// <summary>
+        /// Gets or sets the CUID of the cached value.
+        /// </summary>
         public string Cuid
         {
             get;
             set;
         }
 
+        /// <summary>
+        /// Gets or sets the name of the cached value.
+        /// </summary>
         public string Name
         {
             get;
@@ -96,6 +108,9 @@ namespace Bam.Caching
         }
 
 		Type _type;
+        /// <summary>
+        /// Gets the runtime type of the cached value.
+        /// </summary>
 		public Type Type
 		{
 			get
@@ -111,15 +126,30 @@ namespace Bam.Caching
 			}
 		}
 
+        /// <summary>
+        /// Casts the cached value to the specified type.
+        /// </summary>
+        /// <typeparam name="T">The type to cast the value to.</typeparam>
+        /// <returns>The cached value cast to <typeparamref name="T"/>.</returns>
 		public T ValueAs<T>()
 		{
 			return (T)Value;
 		}
 
+        /// <summary>
+        /// Gets the UTC time when this cache item was created.
+        /// </summary>
 		public DateTime Created { get; private set; }
+
+        /// <summary>
+        /// Gets the UTC time when this cache item was last read (hit).
+        /// </summary>
 		public DateTime LastRead { get; private set; }
 		Serialized _serialized;
-		public object Value 
+        /// <summary>
+        /// Gets the cached value, deserialized from its internal serialized form.
+        /// </summary>
+		public object Value
 		{
 			get
 			{
@@ -131,11 +161,21 @@ namespace Bam.Caching
 			}
 		}
 
+        /// <summary>
+        /// Gets or sets the number of times this item matched a query (cache hits).
+        /// </summary>
 		public int Hits { get; set; }
+
+        /// <summary>
+        /// Gets or sets the number of times this item did not match a query (cache misses).
+        /// </summary>
 		public int Misses { get; set; }
 
 		int _memorySize;
-		public virtual int MemorySize 
+        /// <summary>
+        /// Gets the serialized size of this cache item in bytes.
+        /// </summary>
+		public virtual int MemorySize
 		{
 			get
 			{

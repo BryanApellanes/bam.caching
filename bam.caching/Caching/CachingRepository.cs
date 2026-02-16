@@ -10,32 +10,76 @@ using Bam.Data.Schema;
 
 namespace Bam.Caching
 {
+    /// <summary>
+    /// A typed caching repository that wraps a source repository of type <typeparamref name="T"/> with an in-memory cache layer.
+    /// </summary>
+    /// <typeparam name="T">The type of the underlying source repository.</typeparam>
     public class CachingRepository<T>: CachingRepository where T : class, IRepository
     {
+        /// <summary>
+        /// Implicitly converts a <see cref="CachingRepository{T}"/> to the underlying source repository type.
+        /// </summary>
+        /// <param name="repo">The caching repository to convert.</param>
+        /// <returns>The underlying source repository.</returns>
         public static implicit operator T(CachingRepository<T> repo)
         {
             return repo.TypedSourceRepository;
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CachingRepository{T}"/> class wrapping the specified source repository.
+        /// </summary>
+        /// <param name="sourceRepository">The source repository to wrap with caching.</param>
         public CachingRepository(T sourceRepository) : base(sourceRepository)
         { }
 
+        /// <summary>
+        /// Gets the underlying source repository cast to its specific type.
+        /// </summary>
         public T TypedSourceRepository { get { return SourceRepository as T; } }
     }
 
+    /// <summary>
+    /// A repository that wraps a source repository with an in-memory cache layer, caching creates, retrieves, queries, and updates.
+    /// Delete operations throw <see cref="DeleteNotSupportedException"/>; use <see cref="SourceRepository"/> directly for deletes.
+    /// </summary>
 	public class CachingRepository: Repository, IQueryFilterable
 	{
         const string ExceptionText = "The specified type is not marked as serializable, add the [Serializable] attribute to the class definition to ensure proper caching behavior";
 
         CacheManager _cacheManager;
+        /// <summary>
+        /// Occurs when an item is retrieved from the source repository (cache miss).
+        /// </summary>
         public event EventHandler RetrievedFromSource;
+
+        /// <summary>
+        /// Occurs when an item is retrieved from the cache (cache hit).
+        /// </summary>
         public event EventHandler RetrievedFromCache;
+
+        /// <summary>
+        /// Occurs when the source repository is queried.
+        /// </summary>
         public event EventHandler QueriedSource;
+
+        /// <summary>
+        /// Occurs when the cache is queried.
+        /// </summary>
         public event EventHandler QueriedCache;
+
+        /// <summary>
+        /// Occurs when items are evicted from the cache.
+        /// </summary>
         public event EventHandler Evicted;
 
         protected CachingRepository() { }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CachingRepository"/> class wrapping the specified source repository.
+        /// </summary>
+        /// <param name="sourceRepository">The source repository to wrap with caching. All storable types must have the <see cref="SerializableAttribute"/>.</param>
+        /// <param name="logger">An optional logger. If null, uses <see cref="Log.Default"/>.</param>
         public CachingRepository(IRepository sourceRepository, ILogger logger = null)
         {
             SetSourceRepository(sourceRepository);
@@ -57,10 +101,21 @@ namespace Bam.Caching
             ValidateTypes();
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CachingRepository"/> class using a <see cref="DaoRepository"/> as the source.
+        /// </summary>
+        /// <param name="schemaGenerator">The schema provider for DAO generation.</param>
+        /// <param name="daoGenerator">The DAO generator.</param>
+        /// <param name="wrapperGenerator">The wrapper generator.</param>
+        /// <param name="database">An optional database instance.</param>
+        /// <param name="logger">An optional logger.</param>
         public CachingRepository(ISchemaProvider schemaGenerator, IDaoGenerator daoGenerator, IWrapperGenerator wrapperGenerator, IDatabase? database = null, ILogger? logger = null) : this(new DaoRepository(schemaGenerator, daoGenerator, wrapperGenerator, database, logger), logger)
 	    {
 	    }
-        
+
+        /// <summary>
+        /// Validates that all storable types in the source repository are marked with the <see cref="SerializableAttribute"/>.
+        /// </summary>
         public void ValidateTypes()
         {
             foreach(Type type in SourceRepository.StorableTypes)
@@ -69,6 +124,10 @@ namespace Bam.Caching
             }
         }
 
+        /// <summary>
+        /// Adds a type to the source repository. Throws if the type is not marked with <see cref="SerializableAttribute"/>.
+        /// </summary>
+        /// <param name="type">The type to add.</param>
         public override void AddType(Type type)
         {
             Args.ThrowIf(!type.HasCustomAttributeOfType<SerializableAttribute>(), ExceptionText);
@@ -108,6 +167,12 @@ namespace Bam.Caching
             }
         }
 
+        /// <summary>
+        /// Creates a new item in the source repository and adds it to the cache.
+        /// </summary>
+        /// <typeparam name="T">The type of the item to create.</typeparam>
+        /// <param name="toCreate">The item to create.</param>
+        /// <returns>The created item.</returns>
         public override T Create<T>(T toCreate)
 		{
 			Args.ThrowIfNull(toCreate, "toCreate");
@@ -118,11 +183,22 @@ namespace Bam.Caching
 			return result;
 		}
 
+        /// <summary>
+        /// Creates a new item of the specified type in the source repository and adds it to the cache.
+        /// </summary>
+        /// <param name="type">The type of the item to create.</param>
+        /// <param name="toCreate">The item to create.</param>
+        /// <returns>The created item.</returns>
         public override object Create(Type type, object toCreate)
         {
             return Create(toCreate);
         }
 
+        /// <summary>
+        /// Creates a new item in the source repository and adds it to the cache.
+        /// </summary>
+        /// <param name="toCreate">The item to create.</param>
+        /// <returns>The created item.</returns>
         public override object Create(object toCreate)
 		{
 			Args.ThrowIfNull(toCreate, "toCreate");
@@ -133,21 +209,45 @@ namespace Bam.Caching
 			return result;
 		}
 
+        /// <summary>
+        /// Retrieves an item of type <typeparamref name="T"/> by its integer ID, checking the cache first.
+        /// </summary>
+        /// <typeparam name="T">The type of the item to retrieve.</typeparam>
+        /// <param name="id">The integer ID of the item.</param>
+        /// <returns>The retrieved item.</returns>
 		public override T Retrieve<T>(int id)
 		{
 			return Retrieve<T>((long)id);
 		}
 
+        /// <summary>
+        /// Retrieves an item of type <typeparamref name="T"/> by its unsigned long ID, checking the cache first.
+        /// </summary>
+        /// <typeparam name="T">The type of the item to retrieve.</typeparam>
+        /// <param name="id">The unsigned long ID of the item.</param>
+        /// <returns>The retrieved item.</returns>
 		public override T Retrieve<T>(ulong id)
 		{
             return Retrieve<T>((cache) => cache.Retrieve(id), () => SourceRepository.Retrieve<T>(id));
         }
 
+        /// <summary>
+        /// Retrieves an item of type <typeparamref name="T"/> by its long ID, checking the cache first.
+        /// </summary>
+        /// <typeparam name="T">The type of the item to retrieve.</typeparam>
+        /// <param name="id">The long ID of the item.</param>
+        /// <returns>The retrieved item.</returns>
         public override T Retrieve<T>(long id)
         {
             return Retrieve<T>((cache) => cache.Retrieve(id), () => SourceRepository.Retrieve<T>(id));
         }
 
+        /// <summary>
+        /// Retrieves an item of type <typeparamref name="T"/> by its UUID, checking the cache first.
+        /// </summary>
+        /// <typeparam name="T">The type of the item to retrieve.</typeparam>
+        /// <param name="uuid">The UUID of the item.</param>
+        /// <returns>The retrieved item.</returns>
         public override T Retrieve<T>(string uuid)
         {
             return Retrieve<T>((cache) => cache.Retrieve(uuid), () => SourceRepository.Retrieve<T>(uuid));
@@ -164,6 +264,12 @@ namespace Bam.Caching
 			return SourceRepository.RetrieveAll<T>();
 		}
 
+        /// <summary>
+        /// Delegates batch retrieval to the underlying source repository without caching.
+        /// </summary>
+        /// <param name="type">The type to retrieve.</param>
+        /// <param name="batchSize">The number of items per batch.</param>
+        /// <param name="processor">The action to process each batch.</param>
         public override void BatchRetrieveAll(Type type, int batchSize, Action<IEnumerable<object>> processor)
         {
             SourceRepository.BatchRetrieveAll(type, batchSize, processor);
@@ -180,6 +286,12 @@ namespace Bam.Caching
 			return SourceRepository.RetrieveAll(type);
 		}
 
+        /// <summary>
+        /// Retrieves an item of the specified type by its long ID, checking the cache first and falling back to the source.
+        /// </summary>
+        /// <param name="objectType">The type of the item to retrieve.</param>
+        /// <param name="id">The long ID of the item.</param>
+        /// <returns>The retrieved item.</returns>
 		public override object Retrieve(Type objectType, long id)
 		{
 			Cache cache = _cacheManager.CacheFor(objectType);
@@ -200,6 +312,12 @@ namespace Bam.Caching
 			return result;
 		}
 
+        /// <summary>
+        /// Retrieves an item of the specified type by its unsigned long ID, checking the cache first and falling back to the source.
+        /// </summary>
+        /// <param name="objectType">The type of the item to retrieve.</param>
+        /// <param name="id">The unsigned long ID of the item.</param>
+        /// <returns>The retrieved item.</returns>
         public override object Retrieve(Type objectType, ulong id)
         {
             Cache cache = _cacheManager.CacheFor(objectType);
@@ -220,6 +338,12 @@ namespace Bam.Caching
             return result;
         }
 
+        /// <summary>
+        /// Retrieves an item of the specified type by its UUID, checking the cache first and falling back to the source.
+        /// </summary>
+        /// <param name="objectType">The type of the item to retrieve.</param>
+        /// <param name="uuid">The UUID of the item.</param>
+        /// <returns>The retrieved item.</returns>
         public override object Retrieve(Type objectType, string uuid)
 		{
 			Cache cache = _cacheManager.CacheFor(objectType);
@@ -247,7 +371,14 @@ namespace Bam.Caching
         [Verbosity(VerbosityLevel.Information, SenderMessageFormat="Different types were found with the same property name and value: \r\n{DifferingTypes}")]
 		public event EventHandler DifferringTypesFound;
 
+        /// <summary>
+        /// Gets or sets the property name used in the most recent non-typed query.
+        /// </summary>
 		public string PropertyName { get; set; }
+
+        /// <summary>
+        /// Gets or sets the value used in the most recent non-typed query.
+        /// </summary>
 		public string Value { get; set; }
         /// <summary>
         /// Event that fires when a non typed query is executed.  Used as a 
@@ -262,11 +393,11 @@ namespace Bam.Caching
         }
         
         /// <summary>
-        /// 
+        /// Queries both the cache and the source repository in parallel using the specified predicate, merging results.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="predicate"></param>
-        /// <returns></returns>
+        /// <typeparam name="T">The type of items to query.</typeparam>
+        /// <param name="predicate">The predicate to filter items by.</param>
+        /// <returns>The merged results from cache and source.</returns>
         public override IEnumerable<T> Query<T>(Func<T, bool> predicate)
         {
             Cache cache = _cacheManager.CacheFor<T>();
@@ -283,6 +414,12 @@ namespace Bam.Caching
             return results;
         }
 
+        /// <summary>
+        /// Queries both the cache and the source repository in parallel for items of the specified type, merging results.
+        /// </summary>
+        /// <param name="type">The type of items to query.</param>
+        /// <param name="predicate">The predicate to filter items by.</param>
+        /// <returns>The merged results from cache and source.</returns>
         public override IEnumerable<object> Query(Type type, Func<object, bool> predicate)
         {
             Cache cache = _cacheManager.CacheFor(type);
@@ -298,6 +435,12 @@ namespace Bam.Caching
             return HandleResults(cache, resultsHashes.Result);
         }
 
+        /// <summary>
+        /// Queries both the cache and the source repository in parallel using a dynamic query object, merging results.
+        /// </summary>
+        /// <typeparam name="T">The type of items to query.</typeparam>
+        /// <param name="query">A dynamic object whose properties are used as query parameters.</param>
+        /// <returns>The merged results from cache and source.</returns>
         public override IEnumerable<T> Query<T>(dynamic query)
         {
             Cache cache = _cacheManager.CacheFor<T>();
@@ -313,6 +456,12 @@ namespace Bam.Caching
             return HandleResults(cache, resultsHashes.Result);
 		}
 
+        /// <summary>
+        /// Queries both the cache and the source repository in parallel using dictionary query parameters, merging results.
+        /// </summary>
+        /// <typeparam name="T">The type of items to query.</typeparam>
+        /// <param name="queryParameters">A dictionary of property name-value pairs to match.</param>
+        /// <returns>The merged results from cache and source.</returns>
         public override IEnumerable<T> Query<T>(Dictionary<string, object> queryParameters)
         {
             Cache cache = _cacheManager.CacheFor<T>();
@@ -328,6 +477,12 @@ namespace Bam.Caching
             return HandleResults(cache, resultsHashes.Result);
         }
 
+        /// <summary>
+        /// Queries both the cache and the source repository in parallel for items of the specified type using dictionary parameters, merging results.
+        /// </summary>
+        /// <param name="type">The type of items to query.</param>
+        /// <param name="queryParameters">A dictionary of property name-value pairs to match.</param>
+        /// <returns>The merged results from cache and source.</returns>
         public override IEnumerable<object> Query(Type type, Dictionary<string, object> queryParameters)
         {
             Cache cache = _cacheManager.CacheFor(type);
@@ -344,11 +499,11 @@ namespace Bam.Caching
         }
 
         /// <summary>
-        /// Query 
+        /// Queries both the cache and the source repository in parallel for items of the specified type using a dynamic query, merging results.
         /// </summary>
-        /// <param name="type"></param>
-        /// <param name="query"></param>
-        /// <returns></returns>
+        /// <param name="type">The type of items to query.</param>
+        /// <param name="query">A dynamic object whose properties are used as query parameters.</param>
+        /// <returns>The merged results from cache and source.</returns>
         public override IEnumerable<object> Query(Type type, dynamic query)
         {
             Cache cache = _cacheManager.CacheFor(type);
@@ -428,39 +583,81 @@ namespace Bam.Caching
             return HandleResults(cache, new HashSet<object>(DelegateOrThrow<IEnumerable<object>>("Query", type, predicate)));
         }
 
+        /// <summary>
+        /// Asynchronously primes the cache with the results of the specified dynamic query.
+        /// </summary>
+        /// <typeparam name="T">The type to cache.</typeparam>
+        /// <param name="query">A dynamic object whose properties are used as query parameters.</param>
+        /// <returns>A task that resolves to the cached results.</returns>
         public Task<IEnumerable<T>> CacheAsync<T>(dynamic query)
         {
             return Task.Run((Func<IEnumerable<T>>)(() => (Cache<T>(query))));
         }
 
+        /// <summary>
+        /// Primes the cache with the results of the specified dynamic query.
+        /// </summary>
+        /// <typeparam name="T">The type to cache.</typeparam>
+        /// <param name="query">A dynamic object whose properties are used as query parameters.</param>
+        /// <returns>The cached results.</returns>
         public IEnumerable<T> Cache<T>(dynamic query)
         {
             Cache cache = _cacheManager.CacheFor<T>();
             return HandleResults(cache, new HashSet<T>(DelegateGenericOrThrow<IEnumerable<T>, T>("Query", query)));
         }
 
+        /// <summary>
+        /// Asynchronously primes the cache with the results of the specified dictionary query.
+        /// </summary>
+        /// <typeparam name="T">The type to cache.</typeparam>
+        /// <param name="queryParameters">A dictionary of property name-value pairs to match.</param>
+        /// <returns>A task that resolves to the cached results.</returns>
         public Task<IEnumerable<T>> CacheAsync<T>(Dictionary<string, object> queryParameters)
         {
             return Task.Run(() => Cache<T>(queryParameters));
         }
 
+        /// <summary>
+        /// Primes the cache with the results of the specified dictionary query.
+        /// </summary>
+        /// <typeparam name="T">The type to cache.</typeparam>
+        /// <param name="queryParameters">A dictionary of property name-value pairs to match.</param>
+        /// <returns>The cached results.</returns>
         public IEnumerable<T> Cache<T>(Dictionary<string, object> queryParameters)
         {
             Cache cache = _cacheManager.CacheFor<T>();
             return HandleResults(cache, new HashSet<T>(DelegateGenericOrThrow<IEnumerable<T>, T>("Query", queryParameters)));
         }
 
+        /// <summary>
+        /// Asynchronously primes the cache for the specified type with the results of the dictionary query.
+        /// </summary>
+        /// <param name="type">The type to cache.</param>
+        /// <param name="queryParameters">A dictionary of property name-value pairs to match.</param>
+        /// <returns>A task that resolves to the cached results.</returns>
         public Task<IEnumerable<object>> CacheAsync(Type type, Dictionary<string, object> queryParameters)
         {
             return Task.Run(() => Cache(type, queryParameters));
         }
 
+        /// <summary>
+        /// Primes the cache for the specified type with the results of the dictionary query.
+        /// </summary>
+        /// <param name="type">The type to cache.</param>
+        /// <param name="queryParameters">A dictionary of property name-value pairs to match.</param>
+        /// <returns>The cached results.</returns>
         public IEnumerable<object> Cache(Type type, Dictionary<string, object> queryParameters)
         {
             Cache cache = _cacheManager.CacheFor(type);
             return HandleResults(cache, new HashSet<object>(DelegateOrThrow<IEnumerable<object>>("Query", type, queryParameters)));
         }
 
+        /// <summary>
+        /// Queries the cache for items of the specified type using a dynamic query object, matching by property values.
+        /// </summary>
+        /// <param name="type">The type of items to query.</param>
+        /// <param name="query">A dynamic object whose properties are used as query parameters.</param>
+        /// <returns>A set of matching items.</returns>
         public HashSet<object> QueryCache(Type type, dynamic query)
         {
             Cache cache = _cacheManager.CacheFor(type);
@@ -480,6 +677,12 @@ namespace Bam.Caching
             }));
         }
 
+        /// <summary>
+        /// Queries the cache for items of type <typeparamref name="T"/> using a dynamic query object, matching by property values.
+        /// </summary>
+        /// <typeparam name="T">The type of items to query.</typeparam>
+        /// <param name="query">A dynamic object whose properties are used as query parameters.</param>
+        /// <returns>A set of matching items.</returns>
         public HashSet<T> QueryCache<T>(dynamic query)
         {
             Cache cache = _cacheManager.CacheFor<T>();
@@ -500,6 +703,12 @@ namespace Bam.Caching
             }));
         }
 
+        /// <summary>
+        /// Queries the cache for items of type <typeparamref name="T"/> using a predicate.
+        /// </summary>
+        /// <typeparam name="T">The type of items to query.</typeparam>
+        /// <param name="query">The predicate to filter items by.</param>
+        /// <returns>A set of matching items.</returns>
         public HashSet<T> QueryCache<T>(Func<T, bool> query) where T : class, new()
         {
             Cache cache = _cacheManager.CacheFor<T>();
@@ -508,6 +717,12 @@ namespace Bam.Caching
             return new HashSet<T>(results);
         }
 
+        /// <summary>
+        /// Queries the cache for items of the specified type using a predicate.
+        /// </summary>
+        /// <param name="type">The type of items to query.</param>
+        /// <param name="predicate">The predicate to filter items by.</param>
+        /// <returns>A set of matching items.</returns>
         public HashSet<object> QueryCache(Type type, Func<object, bool> predicate)
         {
             Cache cache = _cacheManager.CacheFor(type);
@@ -516,6 +731,12 @@ namespace Bam.Caching
             return new HashSet<object>(results);
         }
 
+        /// <summary>
+        /// Queries the cache for items of the specified type matching the given property name-value pairs.
+        /// </summary>
+        /// <param name="type">The type of items to query.</param>
+        /// <param name="parameters">A dictionary of property name-value pairs to match.</param>
+        /// <returns>A set of matching items.</returns>
         public HashSet<object> QueryCache(Type type, Dictionary<string, object> parameters)
         {
             Cache cache = _cacheManager.CacheFor(type);
@@ -534,6 +755,12 @@ namespace Bam.Caching
             return new HashSet<object>(results);
         }
 
+        /// <summary>
+        /// Queries the cache for items of type <typeparamref name="T"/> matching the given property name-value pairs.
+        /// </summary>
+        /// <typeparam name="T">The type of items to query.</typeparam>
+        /// <param name="parameters">A dictionary of property name-value pairs to match.</param>
+        /// <returns>A set of matching items.</returns>
         public HashSet<T> QueryCache<T>(Dictionary<string, object> parameters)
         {
             Cache cache = _cacheManager.CacheFor<T>();
@@ -550,6 +777,12 @@ namespace Bam.Caching
             }));
         }
 
+        /// <summary>
+        /// Updates the item in the source repository and refreshes it in the cache asynchronously.
+        /// </summary>
+        /// <typeparam name="T">The type of the item to update.</typeparam>
+        /// <param name="toUpdate">The item to update.</param>
+        /// <returns>The updated item.</returns>
         public override T Update<T>(T toUpdate)
 		{
             Task.Run(() =>
@@ -565,11 +798,22 @@ namespace Bam.Caching
             return SourceRepository.Update<T>(toUpdate);
 		}
 
+        /// <summary>
+        /// Updates the item in the source repository and refreshes it in the cache asynchronously.
+        /// </summary>
+        /// <param name="toUpdate">The item to update.</param>
+        /// <returns>The updated item.</returns>
         public override object Update(object toUpdate)
         {
             return Update(toUpdate.GetType(), toUpdate);
         }
 
+        /// <summary>
+        /// Updates the item of the specified type in the source repository and refreshes it in the cache asynchronously.
+        /// </summary>
+        /// <param name="type">The type of the item to update.</param>
+        /// <param name="toUpdate">The item to update.</param>
+        /// <returns>The updated item.</returns>
         public override object Update(Type type, object toUpdate)
 		{
             Task.Run(() =>
@@ -585,22 +829,42 @@ namespace Bam.Caching
             return SourceRepository.Update(toUpdate);
         }
         
+        /// <summary>
+        /// Not supported. Throws <see cref="DeleteNotSupportedException"/>. Use <see cref="SourceRepository"/> directly for deletes.
+        /// </summary>
+        /// <typeparam name="T">The type of the item to delete.</typeparam>
+        /// <param name="toDelete">The item to delete.</param>
+        /// <returns>Does not return; always throws.</returns>
 		public override bool Delete<T>(T toDelete)
 		{
             throw new DeleteNotSupportedException(Meta.GetUuid(toDelete).Or(typeof(T).FullName));
 		}
 
+        /// <summary>
+        /// Not supported. Throws <see cref="DeleteNotSupportedException"/>. Use <see cref="SourceRepository"/> directly for deletes.
+        /// </summary>
+        /// <param name="type">The type of the item to delete.</param>
+        /// <param name="toDelete">The item to delete.</param>
+        /// <returns>Does not return; always throws.</returns>
         public override bool Delete(Type type, object toDelete)
         {
             return Delete(toDelete);
         }
 
+        /// <summary>
+        /// Not supported. Throws <see cref="DeleteNotSupportedException"/>. Use <see cref="SourceRepository"/> directly for deletes.
+        /// </summary>
+        /// <param name="toDelete">The item to delete.</param>
+        /// <returns>Does not return; always throws.</returns>
         public override bool Delete(object toDelete)
 		{
             string id = toDelete == null ? "[null]" : Meta.GetUuid(toDelete);
             throw new DeleteNotSupportedException(id);
 		}
 
+        /// <summary>
+        /// Gets the underlying source repository that this caching repository wraps.
+        /// </summary>
         public IRepository SourceRepository { get; private set; }
 
         private static HashSet<T> HandleResults<T>(Cache cache, params HashSet<T>[] arrayOfHashSets)
