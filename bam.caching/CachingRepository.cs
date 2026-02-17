@@ -783,9 +783,7 @@ namespace Bam.Caching
         /// <typeparam name="T">The type of the item to update.</typeparam>
         /// <param name="toUpdate">The item to update.</param>
         /// <returns>The updated item.</returns>
-#pragma warning disable CS8765
         public override T Update<T>(T toUpdate)
-#pragma warning restore CS8765
 		{
             Task.Run(() =>
             {

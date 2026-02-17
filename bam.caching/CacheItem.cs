@@ -57,10 +57,14 @@ namespace Bam.Caching
 			Value = value;
 			Meta = metaProvider.GetMeta(this);
 			Created = DateTime.UtcNow;
-            Id = value.Property<ulong>("Id", false);
-            Uuid = value.Property<string>("Uuid", false)!;
-            Cuid = value.Property<string>("Cuid", false)!;
-            Name = value.Property<string>("Name", false)!;
+            ulong valueId = value.Property<ulong>("Id", false);
+            if (valueId > 0)
+            {
+                Id = valueId;
+            }
+            Uuid = value.Property<string>("Uuid", false).Or(Uuid)!;
+            Cuid = value.Property<string>("Cuid", false).Or(Cuid)!;
+            Name = value.Property<string>("Name", false).Or(Name)!;
 		}
 
         /// <summary>

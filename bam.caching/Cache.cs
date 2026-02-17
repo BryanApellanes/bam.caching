@@ -631,26 +631,21 @@ namespace Bam.Caching
             }
             else
             {
+                HashSet<CacheItem> kept = new HashSet<CacheItem>();
                 int i = 0;
-                foreach(CacheItem item in ItemsByHits)
+                foreach (CacheItem item in ItemsByHits)
                 {
-                    itemsCopy.Add(item);
-                    if(i >= firstCount)
+                    if (i < firstCount)
                     {
-                        break;
+                        kept.Add(item);
+                    }
+                    else
+                    {
+                        removed.Add(item);
                     }
                     i++;
                 }
-                i = 0;
-                foreach(CacheItem item in ItemsByHits.Reverse())
-                {
-                    removed.Add(item);
-                    if(i >= tailSize)
-                    {
-                        break;
-                    }
-                    i++;
-                }
+                itemsCopy = kept;
             }
 
             Items = itemsCopy;
