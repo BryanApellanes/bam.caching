@@ -1,0 +1,4 @@
+- Move files and folders from the Caching folder to this folder.
+- read the NOTES.md file and determine if cache size calculation still needs to be updated; if it does propose a refactor to address the issue
+- create a new bam.caching.tests project and include it in the bamtk solution placed next to bam.caching in the solution explorer.
+- write a set of comprehensive tests to test the key classes and functionality of bam.caching following existing test patterns using After.Setup and When.A.

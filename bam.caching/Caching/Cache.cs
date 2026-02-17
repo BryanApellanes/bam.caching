@@ -28,7 +28,7 @@ namespace Bam.Caching
         /// <param name="maxBytes">The maximum size of the cache in bytes.</param>
         /// <param name="groomInBackground">If true, starts a background thread to evict items when the cache exceeds max size.</param>
         /// <param name="evictionListener">An optional event handler invoked when items are evicted.</param>
-        public Cache(string name, uint maxBytes, bool groomInBackground, EventHandler evictionListener = null)
+        public Cache(string name, uint maxBytes, bool groomInBackground, EventHandler evictionListener = null!)
 			: base(name, maxBytes, groomInBackground, evictionListener)
         {
         }
@@ -83,7 +83,7 @@ namespace Bam.Caching
     public class Cache: Loggable
 	{
 		bool _keepGrooming;
-		Thread _groomerThread;
+		Thread _groomerThread = null!;
 		readonly ConcurrentQueue<CacheItem> _evictionQueue;
 
         /// <summary>
@@ -115,13 +115,14 @@ namespace Bam.Caching
         /// <param name="maxBytes">The maximum bytes.</param>
         /// <param name="groomInBackground">if set to <c>true</c> [groom in background].</param>
         /// <param name="evictionListener">The eviction listener.</param>
-        public Cache(string name, uint maxBytes, bool groomInBackground, EventHandler evictionListener = null)
+        public Cache(string name, uint maxBytes, bool groomInBackground, EventHandler evictionListener = null!)
 		{
 			Items = new HashSet<CacheItem>();
 			ItemsByHits = new SortedSet<CacheItem>();
 			ItemsByMisses = new SortedSet<CacheItem>();
 			ItemsById = new Dictionary<ulong, CacheItem>();
             ItemsByUuid = new Dictionary<string, CacheItem>();
+            ItemsByCuid = new Dictionary<string, CacheItem>();
             ItemsByName = new Dictionary<string, CacheItem>();
 			MetaProvider = Bam.Data.Repositories.MetaProvider.Default;
 			
@@ -250,11 +251,11 @@ namespace Bam.Caching
         /// <returns>CacheItem</returns>
         public CacheItem Retrieve(ulong id)
         {
-            if (ItemsById.TryGetValue(id, out CacheItem result))
+            if (ItemsById.TryGetValue(id, out CacheItem? result))
             {
                 result.IncrementHits();
             }
-            return result;
+            return result!;
         }
 
         /// <summary>
@@ -264,12 +265,12 @@ namespace Bam.Caching
         /// <returns>CacheItem</returns>
         public CacheItem Retrieve(string uuid)
         {
-            if (ItemsByUuid.TryGetValue(uuid, out CacheItem result))
+            if (ItemsByUuid.TryGetValue(uuid, out CacheItem? result))
             {
                 result.IncrementHits();
             }
 
-            return result;
+            return result!;
         }
 
         /// <summary>
@@ -285,7 +286,7 @@ namespace Bam.Caching
             CacheItem item = RetrieveByName(name);
             if(item == null)
             {
-                item = new CacheItem(sourceRetriever(), MetaProvider);
+                item = new CacheItem(sourceRetriever()!, MetaProvider);
                 ItemsByName.Add(name, item);
             }
 
@@ -299,12 +300,12 @@ namespace Bam.Caching
         /// <returns>CacheItem</returns>
         public CacheItem RetrieveByName(string name)
         {
-            if (ItemsByName.TryGetValue(name, out CacheItem result))
+            if (ItemsByName.TryGetValue(name, out CacheItem? result))
             {
                 result.IncrementHits();
             }
 
-            return result;
+            return result!;
         }
 
         /// <summary>
@@ -314,11 +315,11 @@ namespace Bam.Caching
         /// <returns></returns>
         public CacheItem RetrieveByCuid(string cuid)
         {
-            if (ItemsByCuid.TryGetValue(cuid, out CacheItem result))
+            if (ItemsByCuid.TryGetValue(cuid, out CacheItem? result))
             {
                 result.IncrementHits();
             }
-            return result;
+            return result!;
         }
 
         /// <summary>
@@ -357,9 +358,9 @@ namespace Bam.Caching
         public virtual IEnumerable<CacheItem> Add<T>(params T[] values)
         {
             HashSet<CacheItem> itemsCopy = new HashSet<CacheItem>(Items);
-            foreach (object value in values)
+            foreach (object value in values!)
             {
-                CacheItem item = new CacheItem(value, MetaProvider);
+                CacheItem item = new CacheItem(value!, MetaProvider);
                 if (itemsCopy.Add(item))
                 {
                     yield return item;
@@ -464,7 +465,7 @@ namespace Bam.Caching
         /// Occurs when items are evicted from the cache.
         /// </summary>
         [Verbosity(VerbosityLevel.Information, SenderMessageFormat="Evicted ({LastEvictionCount}) items from cache named {Name}")]
-		public event EventHandler Evicted;
+		public event EventHandler Evicted = null!;
 
         /// <summary>
         /// Gets the number of items evicted in the most recent eviction operation.
@@ -542,7 +543,7 @@ namespace Bam.Caching
 					{
 						while (_evictionQueue.Count > 0)
 						{
-                            if (_evictionQueue.TryDequeue(out CacheItem item))
+                            if (_evictionQueue.TryDequeue(out CacheItem? item))
                             {
                                 Evict(item);
                             }
@@ -780,8 +781,8 @@ namespace Bam.Caching
                         Dictionary<string, CacheItem> itemsByName = new Dictionary<string, CacheItem>();
                         foreach(CacheItem item in itemsCopy)
                         {
-                            string name = item.Property<string>("Name", false).Or(item.Uuid);
-                            if (itemsByName.ContainsKey(name))
+                            string name = item.Property<string>("Name", false).Or(item.Uuid)!;
+                            if (itemsByName.ContainsKey(name!))
                             {
                                 Log.Warn("Multiple cache items with the same name: {0} ({1}) and ({2})", name, itemsByName[name].Uuid, item.Uuid);
                                 itemsByName[name] = item;

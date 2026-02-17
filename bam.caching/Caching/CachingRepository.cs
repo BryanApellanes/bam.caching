@@ -36,7 +36,7 @@ namespace Bam.Caching
         /// <summary>
         /// Gets the underlying source repository cast to its specific type.
         /// </summary>
-        public T TypedSourceRepository { get { return SourceRepository as T; } }
+        public T TypedSourceRepository { get { return (SourceRepository as T)!; } }
     }
 
     /// <summary>
@@ -47,31 +47,31 @@ namespace Bam.Caching
 	{
         const string ExceptionText = "The specified type is not marked as serializable, add the [Serializable] attribute to the class definition to ensure proper caching behavior";
 
-        CacheManager _cacheManager;
+        CacheManager _cacheManager = null!;
         /// <summary>
         /// Occurs when an item is retrieved from the source repository (cache miss).
         /// </summary>
-        public event EventHandler RetrievedFromSource;
+        public event EventHandler RetrievedFromSource = null!;
 
         /// <summary>
         /// Occurs when an item is retrieved from the cache (cache hit).
         /// </summary>
-        public event EventHandler RetrievedFromCache;
+        public event EventHandler RetrievedFromCache = null!;
 
         /// <summary>
         /// Occurs when the source repository is queried.
         /// </summary>
-        public event EventHandler QueriedSource;
+        public event EventHandler QueriedSource = null!;
 
         /// <summary>
         /// Occurs when the cache is queried.
         /// </summary>
-        public event EventHandler QueriedCache;
+        public event EventHandler QueriedCache = null!;
 
         /// <summary>
         /// Occurs when items are evicted from the cache.
         /// </summary>
-        public event EventHandler Evicted;
+        public event EventHandler Evicted = null!;
 
         protected CachingRepository() { }
 
@@ -80,12 +80,12 @@ namespace Bam.Caching
         /// </summary>
         /// <param name="sourceRepository">The source repository to wrap with caching. All storable types must have the <see cref="SerializableAttribute"/>.</param>
         /// <param name="logger">An optional logger. If null, uses <see cref="Log.Default"/>.</param>
-        public CachingRepository(IRepository sourceRepository, ILogger logger = null)
+        public CachingRepository(IRepository sourceRepository, ILogger logger = null!)
         {
             SetSourceRepository(sourceRepository);
             SetCacheManager();
 
-            Logger = logger ?? Log.Default;
+            Logger = (logger ?? Log.Default)!;
         }
 
         protected void SetCacheManager()
@@ -109,7 +109,7 @@ namespace Bam.Caching
         /// <param name="wrapperGenerator">The wrapper generator.</param>
         /// <param name="database">An optional database instance.</param>
         /// <param name="logger">An optional logger.</param>
-        public CachingRepository(ISchemaProvider schemaGenerator, IDaoGenerator daoGenerator, IWrapperGenerator wrapperGenerator, IDatabase? database = null, ILogger? logger = null) : this(new DaoRepository(schemaGenerator, daoGenerator, wrapperGenerator, database, logger), logger)
+        public CachingRepository(ISchemaProvider schemaGenerator, IDaoGenerator daoGenerator, IWrapperGenerator wrapperGenerator, IDatabase? database = null, ILogger? logger = null) : this(new DaoRepository(schemaGenerator, daoGenerator, wrapperGenerator, database, logger), logger!)
 	    {
 	    }
 
@@ -228,7 +228,7 @@ namespace Bam.Caching
         /// <returns>The retrieved item.</returns>
 		public override T Retrieve<T>(ulong id)
 		{
-            return Retrieve<T>((cache) => cache.Retrieve(id), () => SourceRepository.Retrieve<T>(id));
+            return Retrieve<T>((cache) => cache.Retrieve(id), () => SourceRepository.Retrieve<T>(id)!)!;
         }
 
         /// <summary>
@@ -239,7 +239,7 @@ namespace Bam.Caching
         /// <returns>The retrieved item.</returns>
         public override T Retrieve<T>(long id)
         {
-            return Retrieve<T>((cache) => cache.Retrieve(id), () => SourceRepository.Retrieve<T>(id));
+            return Retrieve<T>((cache) => cache.Retrieve(id), () => SourceRepository.Retrieve<T>(id)!)!;
         }
 
         /// <summary>
@@ -250,7 +250,7 @@ namespace Bam.Caching
         /// <returns>The retrieved item.</returns>
         public override T Retrieve<T>(string uuid)
         {
-            return Retrieve<T>((cache) => cache.Retrieve(uuid), () => SourceRepository.Retrieve<T>(uuid));
+            return Retrieve<T>((cache) => cache.Retrieve(uuid), () => SourceRepository.Retrieve<T>(uuid)!)!;
         }
 
         /// <summary>
@@ -299,8 +299,8 @@ namespace Bam.Caching
 			object result;
 			if (cacheItem == null)
 			{
-				result = SourceRepository.Retrieve(objectType, id);
-				cache.Add(result);
+				result = SourceRepository.Retrieve(objectType, id)!;
+				cache.Add(result!);
                 RetrievedFromSource?.Invoke(this, new CacheRetrieveEventArgs { Type = objectType, Item = result });
 			}
 			else
@@ -325,8 +325,8 @@ namespace Bam.Caching
             object result;
             if (cacheItem == null)
             {
-                result = SourceRepository.Retrieve(objectType, id);
-                cache.Add(result);
+                result = SourceRepository.Retrieve(objectType, id)!;
+                cache.Add(result!);
                 RetrievedFromSource?.Invoke(this, new CacheRetrieveEventArgs { Type = objectType, Item = result });
             }
             else
@@ -351,8 +351,8 @@ namespace Bam.Caching
 			object result;
 			if (cacheItem == null)
 			{
-				result = SourceRepository.Retrieve(objectType, uuid);
-				cache.Add(result);
+				result = SourceRepository.Retrieve(objectType, uuid)!;
+				cache.Add(result!);
                 RetrievedFromSource?.Invoke(this, new CacheRetrieveEventArgs { Type = objectType, Item = result });
             }
 			else
@@ -369,23 +369,23 @@ namespace Bam.Caching
         /// object types are not the same.
         /// </summary>
         [Verbosity(VerbosityLevel.Information, SenderMessageFormat="Different types were found with the same property name and value: \r\n{DifferingTypes}")]
-		public event EventHandler DifferringTypesFound;
+		public event EventHandler DifferringTypesFound = null!;
 
         /// <summary>
         /// Gets or sets the property name used in the most recent non-typed query.
         /// </summary>
-		public string PropertyName { get; set; }
+		public string PropertyName { get; set; } = null!;
 
         /// <summary>
         /// Gets or sets the value used in the most recent non-typed query.
         /// </summary>
-		public string Value { get; set; }
+		public string Value { get; set; } = null!;
         /// <summary>
         /// Event that fires when a non typed query is executed.  Used as a 
         /// warning that the type cannot be determined and will have to be
         /// resolved by the caller.
         /// </summary>
-        public event EventHandler<CachingRepositoryEventArgs> TypelessQuery;
+        public event EventHandler<CachingRepositoryEventArgs> TypelessQuery = null!;
 
         protected void OnQueriedSource<T>(IEnumerable<T> results)
         {
@@ -667,8 +667,8 @@ namespace Bam.Caching
             {
                 foreach (PropertyInfo prop in queryProps)
                 {
-                    PropertyInfo currentProp = type.GetProperty(prop.Name);
-                    if (!ReflectionExtensions.Property(o, prop.Name).Equals(prop.GetValue(query)))
+                    PropertyInfo? currentProp = type.GetProperty(prop.Name);
+                    if (!ReflectionExtensions.Property(o!, prop.Name)!.Equals(prop.GetValue(query)))
                     {
                         return false;
                     }
@@ -692,8 +692,8 @@ namespace Bam.Caching
             {
                 foreach (PropertyInfo prop in queryProps)
                 {
-                    PropertyInfo currentProp = typeof(T).GetProperty(prop.Name);
-                    if (!ReflectionExtensions.Property(o, prop.Name).Equals(prop.GetValue(query)))
+                    PropertyInfo? currentProp = typeof(T).GetProperty(prop.Name);
+                    if (!ReflectionExtensions.Property(o!, prop.Name)!.Equals(prop.GetValue(query)))
                     {
                         return false;
                     }
@@ -744,7 +744,7 @@ namespace Bam.Caching
             {
                 foreach (string propName in parameters.Keys)
                 {
-                    if (!ReflectionExtensions.Property(o.Value, propName).Equals(parameters[propName]))
+                    if (!ReflectionExtensions.Property(o.Value!, propName)!.Equals(parameters[propName]))
                     {
                         return false;
                     }
@@ -768,7 +768,7 @@ namespace Bam.Caching
             {
                 foreach(string propName in parameters.Keys)
                 {
-                    if(!ReflectionExtensions.Property(o, propName).Equals(parameters[propName]))
+                    if(!ReflectionExtensions.Property(o!, propName)!.Equals(parameters[propName]))
                     {
                         return false;
                     }
@@ -783,19 +783,21 @@ namespace Bam.Caching
         /// <typeparam name="T">The type of the item to update.</typeparam>
         /// <param name="toUpdate">The item to update.</param>
         /// <returns>The updated item.</returns>
+#pragma warning disable CS8765
         public override T Update<T>(T toUpdate)
+#pragma warning restore CS8765
 		{
             Task.Run(() =>
             {
                 Cache cache = _cacheManager.CacheFor<T>();
-                CacheItem fromCache = cache.Retrieve(toUpdate);
+                CacheItem fromCache = cache.Retrieve(toUpdate!);
                 if (fromCache != null)
                 {
                     cache.Evict(fromCache);
-                    cache.Add(toUpdate);
+                    cache.Add(toUpdate!);
                 }
             });
-            return SourceRepository.Update<T>(toUpdate);
+            return SourceRepository.Update<T>(toUpdate)!;
 		}
 
         /// <summary>
@@ -826,7 +828,7 @@ namespace Bam.Caching
                     cache.Add(toUpdate);
                 }
             });
-            return SourceRepository.Update(toUpdate);
+            return SourceRepository.Update(toUpdate)!;
         }
         
         /// <summary>
@@ -837,7 +839,7 @@ namespace Bam.Caching
         /// <returns>Does not return; always throws.</returns>
 		public override bool Delete<T>(T toDelete)
 		{
-            throw new DeleteNotSupportedException(Meta.GetUuid(toDelete).Or(typeof(T).FullName));
+            throw new DeleteNotSupportedException(Meta.GetUuid(toDelete).Or(typeof(T).FullName)!);
 		}
 
         /// <summary>
@@ -865,7 +867,7 @@ namespace Bam.Caching
         /// <summary>
         /// Gets the underlying source repository that this caching repository wraps.
         /// </summary>
-        public IRepository SourceRepository { get; private set; }
+        public IRepository SourceRepository { get; private set; } = null!;
 
         private static HashSet<T> HandleResults<T>(Cache cache, params HashSet<T>[] arrayOfHashSets)
         {
@@ -881,7 +883,7 @@ namespace Bam.Caching
         private void CheckForDifferringTypes(string propertyName, object value, object[] results)
         {
             Type firstType = results[0].GetType();
-            object differentType = results.FirstOrDefault(o => o.GetType() != firstType);
+            object? differentType = results.FirstOrDefault(o => o.GetType() != firstType);
             if (differentType != null)
             {
                 HashSet<Type> differingTypes = new HashSet<Type>();
@@ -892,7 +894,7 @@ namespace Bam.Caching
                 FireEvent(DifferringTypesFound, new CachingRepositoryEventArgs 
                 {
                     PropertyName = propertyName, 
-                    ParameterValue = value == null ? "null" : value.ToString(), 
+                    ParameterValue = (value == null ? "null" : value.ToString())!,
                     DifferingTypes = differingTypes.ToArray().ToDelimited(t => t.Name, ", ") 
                 });
             }
@@ -950,7 +952,7 @@ namespace Bam.Caching
             return result;
         }
 
-        private void OnEvicted(object sender, EventArgs e)
+        private void OnEvicted(object? sender, EventArgs e)
         {
             Evicted?.Invoke(sender, e);
         }

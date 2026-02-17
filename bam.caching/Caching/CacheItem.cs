@@ -54,13 +54,13 @@ namespace Bam.Caching
         /// <param name="metaProvider">The meta provider.</param>
         public CacheItem(object value, IMetaProvider metaProvider)
 		{
-			Value = value;			
-			Meta = metaProvider.GetMeta(this);			
+			Value = value;
+			Meta = metaProvider.GetMeta(this);
 			Created = DateTime.UtcNow;
             Id = value.Property<ulong>("Id", false);
-            Uuid = value.Property<string>("Uuid", false);
-            Cuid = value.Property<string>("Cuid", false);
-            Name = value.Property<string>("Name", false);
+            Uuid = value.Property<string>("Uuid", false)!;
+            Cuid = value.Property<string>("Cuid", false)!;
+            Name = value.Property<string>("Name", false)!;
 		}
 
         /// <summary>
@@ -107,7 +107,7 @@ namespace Bam.Caching
             set;
         }
 
-		Type _type;
+		Type _type = null!;
         /// <summary>
         /// Gets the runtime type of the cached value.
         /// </summary>
@@ -122,7 +122,7 @@ namespace Bam.Caching
 						_type = Value.GetType();
 					}
 				}
-				return _type;
+				return _type!;
 			}
 		}
 
@@ -145,7 +145,7 @@ namespace Bam.Caching
         /// Gets the UTC time when this cache item was last read (hit).
         /// </summary>
 		public DateTime LastRead { get; private set; }
-		Serialized _serialized;
+		Serialized _serialized = null!;
         /// <summary>
         /// Gets the cached value, deserialized from its internal serialized form.
         /// </summary>
@@ -153,7 +153,7 @@ namespace Bam.Caching
 		{
 			get
 			{
-				return _serialized.Deserialize();
+				return _serialized.Deserialize()!;
 			}
 			private set
 			{
@@ -204,7 +204,7 @@ namespace Bam.Caching
 			return Value.GetHashCode();
 		}
 
-		public override bool Equals(object obj)
+		public override bool Equals(object? obj)
 		{
 			return Value.Equals(obj);
 		}

@@ -21,7 +21,7 @@ namespace Bam.Caching
         /// <value>
         /// The cache.
         /// </value>
-        public Cache Cache { get; set; }
+        public Cache Cache { get; set; } = null!;
 
         /// <summary>
         /// Gets or sets the evicted items.
@@ -29,6 +29,6 @@ namespace Bam.Caching
         /// <value>
         /// The evicted items.
         /// </value>
-        public CacheItem[] EvictedItems { get; set; }
+        public CacheItem[] EvictedItems { get; set; } = null!;
 	}
 }

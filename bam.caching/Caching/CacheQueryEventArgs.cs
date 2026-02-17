@@ -11,18 +11,18 @@ namespace Bam.Caching
         /// <summary>
         /// Gets or sets the type that was queried.
         /// </summary>
-        public Type Type { get; set; }
+        public Type Type { get; set; } = null!;
 
         /// <summary>
         /// The filter used for the query; may be null
         /// in cases where a different query overload
         /// was used not requiring a QueryFilter
         /// </summary>
-        public IQueryFilter QueryFilter { get; set; }
+        public IQueryFilter QueryFilter { get; set; } = null!;
 
         /// <summary>
         /// Gets or sets the results of the query.
         /// </summary>
-        public IEnumerable<T> Results{ get; set; }
+        public IEnumerable<T> Results{ get; set; } = null!;
     }
 }

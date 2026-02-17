@@ -8,6 +8,6 @@
         /// <summary>
         /// Gets or sets the query context associated with the reload event.
         /// </summary>
-        public QueryContext QueryContext { get; set; }
+        public QueryContext QueryContext { get; set; } = null!;
     }
 }

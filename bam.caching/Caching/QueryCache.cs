@@ -28,7 +28,7 @@ namespace Bam.Caching
         public IEnumerable<T> Results(IQueryFilterable source, QueryFilter filter)
         {
             QueryContext queryContext = new QueryContext(source, filter);
-            if (!_typedQueryResults.TryGetValue(queryContext, out IEnumerable<T> results))
+            if (!_typedQueryResults.TryGetValue(queryContext, out IEnumerable<T>? results))
             {
                 results = Reload(queryContext);
             }
@@ -83,7 +83,7 @@ namespace Bam.Caching
         public IEnumerable<object> Results(Type type, IQueryFilterable source, QueryFilter filter)
         {
             QueryContext queryContext = new QueryContext(source, filter);
-            if (!_queryResults.TryGetValue(queryContext, out IEnumerable<object> results))
+            if (!_queryResults.TryGetValue(queryContext, out IEnumerable<object>? results))
             {
                 results = Reload(type, queryContext);
             }
@@ -105,12 +105,12 @@ namespace Bam.Caching
         /// <summary>
         /// Occurs before a reload operation begins.
         /// </summary>
-        public event EventHandler<QueryCacheEventArgs> Reloading;
+        public event EventHandler<QueryCacheEventArgs> Reloading = null!;
 
         /// <summary>
         /// Occurs after a reload operation completes.
         /// </summary>
-        public event EventHandler<QueryCacheEventArgs> Reloaded;
+        public event EventHandler<QueryCacheEventArgs> Reloaded = null!;
 
         /// <summary>
         /// Reloads results from the source using the specified type and query context, updating the cache.

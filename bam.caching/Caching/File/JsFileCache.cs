@@ -122,9 +122,9 @@ namespace Bam.Caching.File
         public override CachedFile Load(FileInfo file)
         {
             CachedFile cachedFile = base.Load(file);
-            _minCache.AddMissing(file.FullName, new MinifyResult(System.IO.File.ReadAllText(file.FullName)));
-            _minText.AddMissing(file.FullName, _minCache[file.FullName].MinScript);
-            _minTextBytes.AddMissing(file.FullName, _minText[file.FullName].GZip());
+            _minCache.TryAdd(file.FullName, new MinifyResult(System.IO.File.ReadAllText(file.FullName)));
+            _minText.TryAdd(file.FullName, _minCache[file.FullName].MinScript);
+            _minTextBytes.TryAdd(file.FullName, _minText[file.FullName].GZip());
             return cachedFile;
         }
     }

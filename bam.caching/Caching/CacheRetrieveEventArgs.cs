@@ -9,7 +9,7 @@
         /// <summary>
         /// Gets or sets the retrieved item.
         /// </summary>
-        public T Item { get; set; }
+        public T Item { get; set; } = default!;
     }
 
     /// <summary>
@@ -20,11 +20,11 @@
         /// <summary>
         /// Gets or sets the type of the retrieved item.
         /// </summary>
-        public Type Type { get; set; }
+        public Type Type { get; set; } = null!;
 
         /// <summary>
         /// Gets or sets the retrieved item.
         /// </summary>
-        public object Item { get; set; }
+        public object Item { get; set; } = null!;
     }
 }

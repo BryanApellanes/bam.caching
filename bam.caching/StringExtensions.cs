@@ -13,7 +13,7 @@ namespace Bam.Caching
         /// <param name="value">The string to compress.</param>
         /// <param name="enc">The encoding to use. Defaults to UTF-8 if null.</param>
         /// <returns>A task that resolves to the GZip-compressed byte array.</returns>
-        public static Task<byte[]> GZipAsync(this string value, Encoding enc = null)
+        public static Task<byte[]> GZipAsync(this string value, Encoding enc = null!)
         {
             return Task.Run(() => value.GZip(enc));
         }
@@ -24,7 +24,7 @@ namespace Bam.Caching
         /// <param name="value">The string to compress.</param>
         /// <param name="enc">The encoding to use. Defaults to UTF-8 if null.</param>
         /// <returns>The GZip-compressed byte array.</returns>
-        public static byte[] GZip(this string value, Encoding enc = null)
+        public static byte[] GZip(this string value, Encoding enc = null!)
         {
             enc = enc ?? Encoding.UTF8;
             return enc.GetBytes(value).GZip();

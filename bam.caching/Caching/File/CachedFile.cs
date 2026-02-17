@@ -36,14 +36,14 @@ namespace Bam.Caching.File
         /// </summary>
         /// <param name="file">The file.</param>
         /// <param name="logger">The logger.</param>
-        public CachedFile(FileInfo file, ILogger logger = null)
+        public CachedFile(FileInfo file, ILogger logger = null!)
         {
             FullName = file.FullName;
             File = file;
             if (File.Exists)
             {
                 ContentHash = File.ContentHash(HashAlgorithms.MD5);
-                Task.Run(() => Load(logger ?? Log.Default));
+                Task.Run(() => Load((logger ?? Log.Default)!));
                 file.OnChange(async (s, a) => await Reload(logger));
             }
         }
@@ -53,13 +53,13 @@ namespace Bam.Caching.File
         /// </summary>
         /// <param name="logger">The logger.</param>
         /// <returns></returns>
-        public async Task<bool> Reload(ILogger logger = null)
+        public async Task<bool> Reload(ILogger logger = null!)
         {
             Thread.Sleep(300);
-            _zippedText = null;
-            _zippedBytes = null;
-            _text = null;
-            _bytes = null;
+            _zippedText = null!;
+            _zippedBytes = null!;
+            _text = null!;
+            _bytes = null!;
             return await Load(logger);
         }
 
@@ -68,7 +68,7 @@ namespace Bam.Caching.File
         /// </summary>
         /// <param name="logger">The logger.</param>
         /// <returns></returns>
-        public async Task<bool> Load(ILogger logger = null)
+        public async Task<bool> Load(ILogger logger = null!)
         {
             return await Task.Run(() =>
             {
@@ -98,8 +98,8 @@ namespace Bam.Caching.File
                 }
                 catch (Exception ex)
                 {
-                    logger = logger ?? Log.Default;
-                    logger.AddEntry("Error loading file {0}: {1}", ex, File?.FullName ?? "<null>", ex.Message);
+                    logger = (logger ?? Log.Default)!;
+                    logger!.AddEntry("Error loading file {0}: {1}", ex, File?.FullName ?? "<null>", ex.Message);
                     return false;
                 }
             });
@@ -119,7 +119,7 @@ namespace Bam.Caching.File
         /// <value>
         /// The load exception.
         /// </value>
-        protected internal Exception LoadException { get; set; }
+        protected internal Exception LoadException { get; set; } = null!;
 
         /// <summary>
         /// Gets the content hash.
@@ -127,7 +127,7 @@ namespace Bam.Caching.File
         /// <value>
         /// The content hash.
         /// </value>
-        public string ContentHash { get; private set; }
+        public string ContentHash { get; private set; } = null!;
         /// <summary>
         /// Gets the full name of the file.
         /// </summary>
@@ -138,7 +138,7 @@ namespace Bam.Caching.File
 
         internal FileInfo File { get; set; }
 
-        byte[] _zippedBytes;
+        byte[] _zippedBytes = null!;
         readonly object _zippedByteLock = new object();
         /// <summary>
         /// Gets the zipped bytes.
@@ -150,7 +150,7 @@ namespace Bam.Caching.File
             return gzipped;
         }
 
-        byte[] _bytes;
+        byte[] _bytes = null!;
         readonly object _byteLock = new object();
         /// <summary>
         /// Gets the bytes.
@@ -162,7 +162,7 @@ namespace Bam.Caching.File
             return bytes;
         }
 
-        string _text;
+        string _text = null!;
         readonly object _textLock = new object();
         /// <summary>
         /// Gets the text.
@@ -174,7 +174,7 @@ namespace Bam.Caching.File
             return text;
         }
 
-        byte[] _zippedText;
+        byte[] _zippedText = null!;
         readonly object _zippedTextLock = new object();
         /// <summary>
         /// Gets the zipped text.
@@ -193,9 +193,9 @@ namespace Bam.Caching.File
         /// <returns>
         ///   <c>true</c> if the specified <see cref="System.Object" /> is equal to this instance; otherwise, <c>false</c>.
         /// </returns>
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
-            CachedFile meta = obj as CachedFile;
+            CachedFile? meta = obj as CachedFile;
             if (meta == null)
             {
                 return false;

@@ -43,9 +43,9 @@ namespace Bam.Caching
             return DataSource.Query(type, Filter);
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
-            QueryContext ctx = obj as QueryContext;
+            QueryContext? ctx = obj as QueryContext;
             if(ctx != null)
             {
                 return ctx.Filter.Equals(Filter) & ctx.DataSource.Equals(DataSource);

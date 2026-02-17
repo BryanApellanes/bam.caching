@@ -57,23 +57,23 @@ namespace Bam.Caching
         /// <returns>
         /// A signed integer that indicates the relative values of <paramref name="x" /> and <paramref name="y" />, as shown in the following table.Value Meaning Less than zero<paramref name="x" /> is less than <paramref name="y" />.Zero<paramref name="x" /> equals <paramref name="y" />.Greater than zero<paramref name="x" /> is greater than <paramref name="y" />.
         /// </returns>
-        public int Compare(CacheItem x, CacheItem y)
+        public int Compare(CacheItem? x, CacheItem? y)
         {
             if (Hits)
             {
                 if(SortOrder == SortOrder.Ascending)
                 {
-                    return x.Hits.CompareTo(y.Hits);
+                    return x!.Hits.CompareTo(y!.Hits);
                 }
-                return y.Hits.CompareTo(x.Hits);
+                return y!.Hits.CompareTo(x!.Hits);
             }
             else
             {
                 if(SortOrder == SortOrder.Ascending)
                 {
-                    return x.Misses.CompareTo(y.Misses);
+                    return x!.Misses.CompareTo(y!.Misses);
                 }
-                return y.Misses.CompareTo(x.Misses);
+                return y!.Misses.CompareTo(x!.Misses);
             }
         }
     }

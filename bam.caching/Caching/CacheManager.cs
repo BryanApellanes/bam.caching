@@ -71,13 +71,13 @@ namespace Bam.Caching
         /// <summary>
         /// Occurs when items are evicted from any managed cache.
         /// </summary>
-        public event EventHandler Evicted;
+        public event EventHandler Evicted = null!;
 
         /// <summary>
         /// Occurs when retrieving a cache for a type fails.
         /// </summary>
         [Verbosity(LogEventType.Warning, SenderMessageFormat = "Failed to get Cache for type {TypeName}")]
-        public event EventHandler GetCacheFailed;
+        public event EventHandler GetCacheFailed = null!;
 
         /// <summary>
         /// Checks for a cache for the specified type setting it to the
@@ -95,7 +95,7 @@ namespace Bam.Caching
             }
         }
 
-        private void OnEvicted(object sender, EventArgs args)
+        private void OnEvicted(object? sender, EventArgs args)
         {
             Evicted?.Invoke(sender, args);
         }
@@ -104,13 +104,13 @@ namespace Bam.Caching
         /// Occurs when a cache for a type is removed.
         /// </summary>
         [Verbosity(LogEventType.Information, SenderMessageFormat = "Removed Cache for type {TypeName}")]
-        public event EventHandler CacheRemoved;
+        public event EventHandler CacheRemoved = null!;
 
         /// <summary>
         /// Occurs when a cache for a type is set.
         /// </summary>
         [Verbosity(LogEventType.Information, SenderMessageFormat = "Set Cache for type {TypeName}")]
-        public event EventHandler CacheSet;
+        public event EventHandler CacheSet = null!;
 
         /// <summary>
         /// Gets or creates a typed cache using the specified cache provider function.
@@ -133,11 +133,11 @@ namespace Bam.Caching
         public Cache CacheFor(Type type)
         {
             EnsureCache(type, () => new Cache(type.Name, MaxCacheSizeBytes, true, OnEvicted));
-            if (!_cacheDictionary.TryGetValue(type, out Cache result))
+            if (!_cacheDictionary.TryGetValue(type, out Cache? result))
             {
                 FireEvent(GetCacheFailed, new CacheManagerEventArgs { Type = type });
             }
-            return result;
+            return result!;
         }
 
         /// <summary>
@@ -147,7 +147,7 @@ namespace Bam.Caching
         /// <param name="cache">The cache instance to use.</param>
         public void CacheFor(Type type, Cache cache)
         {
-            if (_cacheDictionary.TryRemove(type, out Cache removed))
+            if (_cacheDictionary.TryRemove(type, out Cache? removed))
             {
                 FireEvent(CacheRemoved, new CacheManagerEventArgs { Type = type, Cache = removed });
             }
@@ -156,7 +156,7 @@ namespace Bam.Caching
             EnsureCache(type, () => cache);            
         }
 
-		static CacheManager _defaultCacheManager;
+		static CacheManager _defaultCacheManager = null!;
 		static readonly object _defaultCacheManagerLock = new object();
         /// <summary>
         /// Gets the default singleton <see cref="CacheManager"/> instance.

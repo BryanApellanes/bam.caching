@@ -12,8 +12,8 @@ namespace Bam.Caching.File
     public abstract class FileCache: IFileCache
 	{
         static readonly object _lock = new object();
-        static ConcurrentDictionary<string, CachedFile> _cachedFiles;
-        static ConcurrentDictionary<string, string> _hashes;
+        static ConcurrentDictionary<string, CachedFile> _cachedFiles = null!;
+        static ConcurrentDictionary<string, string> _hashes = null!;
 
         public FileCache()
         {
@@ -27,7 +27,7 @@ namespace Bam.Caching.File
         /// <value>
         /// The file extension.
         /// </value>
-        public string FileExtension { get; protected set; }
+        public string FileExtension { get; protected set; } = null!;
 
         /// <summary>
         /// Gets the content.
@@ -114,7 +114,7 @@ namespace Bam.Caching.File
             {
                 if (HashChanged(file))
                 {
-                    Task.Run(() => Logging.Log.Default.Info("FileCache: {0} hash changed, reloading file.", file.FullName));
+                    Task.Run(() => Logging.Log.Default!.Info("FileCache: {0} hash changed, reloading file.", file.FullName));
                     Reload(file);
                 }
             });
@@ -129,8 +129,8 @@ namespace Bam.Caching.File
         /// <returns></returns>
         protected bool HashChanged(FileInfo file)
         {
-            if (_hashes.TryGetValue(file.FullName, out string hash) && 
-                _cachedFiles.TryGetValue(file.FullName, out CachedFile cachedFile))
+            if (_hashes.TryGetValue(file.FullName, out string? hash) &&
+                _cachedFiles.TryGetValue(file.FullName, out CachedFile? cachedFile))
             {
                 return !string.IsNullOrEmpty(hash) && !cachedFile.ContentHash.Equals(hash);
             }
@@ -143,7 +143,7 @@ namespace Bam.Caching.File
         /// <param name="file">The file.</param>
         public bool Remove(FileInfo file)
         {
-            return _cachedFiles.TryRemove(file.FullName, out CachedFile value);
+            return _cachedFiles.TryRemove(file.FullName, out CachedFile? value);
         }
 
         /// <summary>

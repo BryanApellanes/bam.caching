@@ -8,16 +8,16 @@
         /// <summary>
         /// Gets or sets the property name used in the query.
         /// </summary>
-        public string PropertyName { get; set; }
+        public string PropertyName { get; set; } = null!;
 
         /// <summary>
         /// Gets or sets the parameter value used in the query.
         /// </summary>
-        public object ParameterValue { get; set; }
+        public object ParameterValue { get; set; } = null!;
 
         /// <summary>
         /// Gets or sets a comma-delimited string of differing type names found during a query.
         /// </summary>
-        public string DifferingTypes { get; set; }
+        public string DifferingTypes { get; set; } = null!;
     }
 }
