@@ -82,8 +82,11 @@ namespace Bam.Caching
     /// <seealso cref="Bam.Caching.Cache" />
     public class Cache: Loggable
 	{
-		bool _keepGrooming;
-		Thread _groomerThread = null!;
+		readonly object _groomerLock = new object();
+		Thread? _groomerThread;
+		CancellationTokenSource? _groomerStop;
+		bool _stopsGroomerOnDomainUnload;
+		int _activeGroomerCount;
 		readonly ConcurrentQueue<CacheItem> _evictionQueue;
 
         /// <summary>
@@ -129,7 +132,6 @@ namespace Bam.Caching
 			Name = name;
 			MaxBytes = maxBytes;
 
-			_keepGrooming = true;
 			GroomerSignal = new AutoResetEvent(false);
 			_evictionQueue = new ConcurrentQueue<CacheItem>();
 			
@@ -498,29 +500,49 @@ namespace Bam.Caching
 		}
 
 		/// <summary>
-		/// Start grooming in a background thread;
+		/// The number of groomer threads currently inside their loop. More than one only while a
+		/// stopped groomer is still finishing a groom after a new one was started.
+		/// </summary>
+		protected int ActiveGroomerCount
+		{
+			get
+			{
+				return Volatile.Read(ref _activeGroomerCount);
+			}
+		}
+
+		/// <summary>
+		/// Start grooming in a background thread. A groomer that is already running is stopped first,
+		/// so there is one groomer per cache. Each groomer has its own stop signal: starting a new one
+		/// never revives one that was stopped.
 		/// </summary>
 		public void StartGroomer()
 		{
-			Action<dynamic> groomer = (ctx) =>
+			StopGroomer();
+
+			CancellationTokenSource stop = new CancellationTokenSource();
+			Thread groomerThread = new Thread(() => Groomer(stop))
 			{
-				ctx.Cache.Groomer();
+				IsBackground = true
 			};
-			
-			if(_groomerThread != null && _groomerThread.ThreadState == System.Threading.ThreadState.Running)
+			bool subscribeToDomainUnload;
+			CancellationTokenSource? startedMeanwhile;
+			lock (_groomerLock)
 			{
-				StopGrooming();
+				startedMeanwhile = _groomerStop;
+				_groomerStop = stop;
+				_groomerThread = groomerThread;
+				subscribeToDomainUnload = !_stopsGroomerOnDomainUnload;
+				_stopsGroomerOnDomainUnload = true;
 			}
+			// Another thread started a groomer between the stop above and the lock: stop that one too.
+			startedMeanwhile?.Cancel();
+			groomerThread.Start();
 
-			_groomerThread = groomer.ExecuteInThread(new { Cache = this });
-
-			AppDomain.CurrentDomain.DomainUnload += (o, e) =>
+			if (subscribeToDomainUnload)
 			{
-				if (_groomerThread.ThreadState == System.Threading.ThreadState.Running)
-				{
-					StopGrooming();
-				}
-			};
+				AppDomain.CurrentDomain.DomainUnload += (o, e) => StopGroomer();
+			}
 		}
 
 		/// <summary>
@@ -529,26 +551,23 @@ namespace Bam.Caching
 		/// </summary>
 		public void Groom()
 		{
-			if(_keepGrooming)
+			int evictableTailCount = GetEvictableTailCount();
+			if (evictableTailCount > 0)
 			{
-				int evictableTailCount = GetEvictableTailCount();
-				if (evictableTailCount > 0)
-				{
-					Evict(evictableTailCount);
-				}
+				Evict(evictableTailCount);
+			}
 
-				if (_evictionQueue.Count > 0)
+			if (_evictionQueue.Count > 0)
+			{
+				lock(_queueLock)
 				{
-					lock(_queueLock)
+					while (_evictionQueue.Count > 0)
 					{
-						while (_evictionQueue.Count > 0)
-						{
-                            if (_evictionQueue.TryDequeue(out CacheItem? item))
-                            {
-                                Evict(item);
-                            }
+                        if (_evictionQueue.TryDequeue(out CacheItem? item))
+                        {
+                            Evict(item);
                         }
-					}
+                    }
 				}
 			}
 		}
@@ -710,33 +729,74 @@ namespace Bam.Caching
 			return result;
 		}
 		
-		private void Groomer() // referenced by dynamic setup of _groomerThread; see StartGroomer
+		private void Groomer(CancellationTokenSource stop)
 		{
-			while(_keepGrooming)
+			Interlocked.Increment(ref _activeGroomerCount);
+			try
 			{
-                try
-                {
-                    GroomerSignal.WaitOne();
-                    Groom();
-                }
-                catch (Exception ex)
-                {
-                    Trace.Write($"Exception in cache groomer thread: {ex.Message}");
-                }
+				CancellationToken stopToken = stop.Token;
+				WaitHandle[] wakeUps = new WaitHandle[] { stopToken.WaitHandle, GroomerSignal };
+				while (!stopToken.IsCancellationRequested)
+				{
+					try
+					{
+						// Index 0 is this groomer's own stop signal, so a stop cannot be taken by another groomer.
+						if (WaitHandle.WaitAny(wakeUps) == 0)
+						{
+							break;
+						}
+						Groom();
+					}
+					catch (Exception ex)
+					{
+						Trace.Write($"Exception in cache groomer thread: {ex.Message}");
+					}
+				}
+			}
+			finally
+			{
+				Interlocked.Decrement(ref _activeGroomerCount);
+				stop.Dispose();
 			}
 		}
 		
-		private void StopGrooming()
+		/// <summary>
+		/// Stops the background groomer started by <see cref="StartGroomer"/> and waits up to three
+		/// seconds for its thread to exit. The stop is cooperative: the groomer is woken through its own
+		/// stop signal and leaves its loop on its own, because <see cref="Thread.Abort()"/>
+		/// is not supported on modern .NET. Items already cached are left alone, <see cref="Groom"/> can
+		/// still be called directly, and <see cref="StartGroomer"/> may be called again afterwards.
+		/// </summary>
+		/// <returns>
+		/// true if the groomer thread has exited or none was started; false if it is still running, which is
+		/// the case when it did not exit within the wait and when this is called from the groomer thread
+		/// itself (an eviction listener, say): that thread exits once the current groom returns.
+		/// </returns>
+		public bool StopGroomer()
 		{
-			try
+			Thread? groomerThread;
+			CancellationTokenSource? stop;
+			lock (_groomerLock)
 			{
-				_keepGrooming = false;
-				_groomerThread.Abort();
-				_groomerThread.Join(3000);
+				groomerThread = _groomerThread;
+				stop = _groomerStop;
+				_groomerStop = null;
 			}
-			catch
+
+			// Only the caller that took the stop signal out of the field cancels it; the groomer
+			// disposes it after leaving its loop, which it does only once it is cancelled.
+			stop?.Cancel();
+			if (groomerThread == null || !groomerThread.IsAlive)
 			{
+				return true;
 			}
+
+			if (groomerThread == Thread.CurrentThread)
+			{
+				return false;
+			}
+
+			return groomerThread.Join(3000);
 		}
 
         protected async void Organize()

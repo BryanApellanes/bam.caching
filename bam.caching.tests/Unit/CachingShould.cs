@@ -365,4 +365,230 @@ public class CachingShould : UnitTestMenuContainer
         .SoBeHappy()
         .UnlessItFailed();
     }
+
+    [UnitTest]
+    public void StopTheBackgroundGroomer()
+    {
+        When.A<Cache>("stops its background groomer thread without Thread.Abort",
+            () => new Cache(true),
+            (cache) => cache.StopGroomer())
+        .TheTest
+        .ShouldPass<bool>((because, _, stopped) =>
+        {
+            because.ItsTrue("the groomer thread exited within the wait", stopped);
+        })
+        .SoBeHappy()
+        .UnlessItFailed();
+    }
+
+    [UnitTest]
+    public void ReportStoppedWhenNoGroomerWasStarted()
+    {
+        When.A<Cache>("is asked to stop a groomer it never started",
+            () => new Cache(false),
+            (cache) => cache.StopGroomer())
+        .TheTest
+        .ShouldPass<bool>((because, _, stopped) =>
+        {
+            because.ItsTrue("there is no groomer thread left running", stopped);
+        })
+        .SoBeHappy()
+        .UnlessItFailed();
+    }
+
+    [UnitTest]
+    public void RestartTheGroomerAfterStoppingIt()
+    {
+        When.A<Cache>("stops, restarts and stops its groomer again",
+            () => new Cache(true),
+            (cache) =>
+            {
+                bool firstStop = cache.StopGroomer();
+                cache.StartGroomer();
+                bool secondStop = cache.StopGroomer();
+                return new GroomerRestartOutcome(firstStop, secondStop);
+            })
+        .TheTest
+        .ShouldPass<GroomerRestartOutcome>((because, _, outcome) =>
+        {
+            because.ItsTrue("the first groomer stopped", outcome.FirstStop);
+            because.ItsTrue("the restarted groomer stopped", outcome.SecondStop);
+        })
+        .SoBeHappy()
+        .UnlessItFailed();
+    }
+
+    [UnitTest]
+    public void RunOneGroomerWhenStartedWhileAlreadyRunning()
+    {
+        When.A<GroomerProbeCache>("is started again while its groomer is running",
+            () => new GroomerProbeCache(true),
+            (cache) =>
+            {
+                cache.StartGroomer();
+                cache.StartGroomer();
+                bool oneGroomer = WaitFor(() => cache.Groomers == 1);
+                bool stopped = cache.StopGroomer();
+                return new SingleGroomerOutcome(oneGroomer, stopped, cache.Groomers);
+            })
+        .TheTest
+        .ShouldPass<SingleGroomerOutcome>((because, _, outcome) =>
+        {
+            because.ItsTrue("the earlier groomers exited, leaving one", outcome.OneGroomerAfterRestart);
+            because.ItsTrue("stopping reports the groomer exited", outcome.Stopped);
+            because.ItsTrue($"no groomer is left ({outcome.GroomersAfterStop})", outcome.GroomersAfterStop == 0);
+        })
+        .SoBeHappy()
+        .UnlessItFailed();
+    }
+
+    [UnitTest]
+    public void LeaveOneGroomerWhenRestartedFromAnEvictionListener()
+    {
+        When.A<GroomerProbeCache>("is stopped and started by an eviction listener running on the groomer thread",
+            () => new GroomerProbeCache(true),
+            (cache) =>
+            {
+                Thread testThread = Thread.CurrentThread;
+                ManualResetEventSlim listenerRan = new ManualResetEventSlim(false);
+                bool stopFromGroomer = true;
+                bool listenerOnGroomerThread = false;
+                int listenerCalls = 0;
+                cache.Evicted += (sender, args) =>
+                {
+                    if (Interlocked.Increment(ref listenerCalls) > 1)
+                    {
+                        return;
+                    }
+                    listenerOnGroomerThread = Thread.CurrentThread != testThread;
+                    stopFromGroomer = cache.StopGroomer();
+                    cache.StartGroomer();
+                    listenerRan.Set();
+                };
+
+                CacheItem item = cache.Add((object)new TestCacheable { Name = "a", Value = "alpha" });
+                bool indexed = WaitFor(() => cache.Retrieve(item.Uuid) != null);
+                cache.QueueEviction(item.Uuid);
+                bool ran = listenerRan.Wait(5000);
+                bool oneGroomer = WaitFor(() => cache.Groomers == 1);
+
+                // The groomer the listener started still grooms.
+                CacheItem second = cache.Add((object)new TestCacheable { Name = "b", Value = "bravo" });
+                bool secondIndexed = WaitFor(() => cache.Retrieve(second.Uuid) != null);
+                cache.QueueEviction(second.Uuid);
+                bool secondEvicted = WaitFor(() => Volatile.Read(ref listenerCalls) == 2);
+
+                bool stopped = cache.StopGroomer();
+                return new ListenerRestartOutcome(indexed && secondIndexed, ran, listenerOnGroomerThread, stopFromGroomer, oneGroomer, secondEvicted, stopped, cache.Groomers);
+            })
+        .TheTest
+        .ShouldPass<ListenerRestartOutcome>((because, _, outcome) =>
+        {
+            because.ItsTrue("the items were indexed", outcome.Indexed);
+            because.ItsTrue("the listener ran", outcome.ListenerRan);
+            because.ItsTrue("the listener ran on the groomer thread", outcome.ListenerOnGroomerThread);
+            because.ItsTrue("StopGroomer called from the groomer reports it still running", !outcome.StopFromGroomer);
+            because.ItsTrue("the stopped groomer exited instead of being revived by the restart", outcome.OneGroomerAfterRestart);
+            because.ItsTrue("the groomer started by the listener grooms", outcome.RestartedGroomerEvicted);
+            because.ItsTrue("the restarted groomer stops", outcome.Stopped);
+            because.ItsTrue($"no groomer is left ({outcome.GroomersAfterStop})", outcome.GroomersAfterStop == 0);
+        })
+        .SoBeHappy()
+        .UnlessItFailed();
+    }
+
+    [UnitTest]
+    public void ExitWhenStoppedFromItsOwnGroomerThread()
+    {
+        When.A<GroomerProbeCache>("is stopped by an eviction listener running on the groomer thread",
+            () => new GroomerProbeCache(true),
+            (cache) =>
+            {
+                bool stopFromGroomer = true;
+                ManualResetEventSlim listenerRan = new ManualResetEventSlim(false);
+                cache.Evicted += (sender, args) =>
+                {
+                    stopFromGroomer = cache.StopGroomer();
+                    listenerRan.Set();
+                };
+                CacheItem item = cache.Add((object)new TestCacheable { Name = "a", Value = "alpha" });
+                bool indexed = WaitFor(() => cache.Retrieve(item.Uuid) != null);
+                cache.QueueEviction(item.Uuid);
+                bool ran = listenerRan.Wait(5000);
+                bool exited = WaitFor(() => cache.Groomers == 0);
+                return new SelfStopOutcome(indexed, ran, stopFromGroomer, exited, cache.StopGroomer());
+            })
+        .TheTest
+        .ShouldPass<SelfStopOutcome>((because, _, outcome) =>
+        {
+            because.ItsTrue("the item was indexed", outcome.Indexed);
+            because.ItsTrue("the listener ran", outcome.ListenerRan);
+            because.ItsTrue("the call from the groomer thread reports it still running", !outcome.StopFromGroomer);
+            because.ItsTrue("the groomer exits once the groom returns", outcome.GroomerExited);
+            because.ItsTrue("a later stop reports nothing running", outcome.StopAfterwards);
+        })
+        .SoBeHappy()
+        .UnlessItFailed();
+    }
+
+    [UnitTest]
+    public void GroomOnDemandAfterTheGroomerIsStopped()
+    {
+        When.A<GroomerProbeCache>("is groomed directly after its background groomer stopped",
+            () => new GroomerProbeCache(true),
+            (cache) =>
+            {
+                CacheItem item = cache.Add((object)new TestCacheable { Name = "a", Value = "alpha" });
+                bool indexed = WaitFor(() => cache.Retrieve(item.Uuid) != null);
+                bool stopped = cache.StopGroomer();
+                int evictions = 0;
+                cache.Evicted += (sender, args) => Interlocked.Increment(ref evictions);
+                cache.QueueEviction(item.Uuid);
+                Thread.Sleep(200);
+                int evictionsBeforeGroom = Volatile.Read(ref evictions);
+                // Counts Evicted events, not items: Evict(CacheItem) leaves the item in place (bam.caching#4).
+                cache.Groom();
+                return new OnDemandGroomOutcome(indexed, stopped, evictionsBeforeGroom, Volatile.Read(ref evictions));
+            })
+        .TheTest
+        .ShouldPass<OnDemandGroomOutcome>((because, _, outcome) =>
+        {
+            because.ItsTrue("the item was indexed", outcome.Indexed);
+            because.ItsTrue("the groomer stopped", outcome.Stopped);
+            because.ItsTrue("nothing grooms in the background once stopped", outcome.EvictionsBeforeGroom == 0);
+            because.ItsTrue("Groom works the eviction queue", outcome.EvictionsAfterGroom == 1);
+        })
+        .SoBeHappy()
+        .UnlessItFailed();
+    }
+
+    private static bool WaitFor(Func<bool> condition)
+    {
+        return SpinWait.SpinUntil(condition, 5000);
+    }
+
+    private sealed class GroomerProbeCache : Cache
+    {
+        public GroomerProbeCache(bool groomInBackground) : base(groomInBackground)
+        {
+        }
+
+        public int Groomers
+        {
+            get
+            {
+                return ActiveGroomerCount;
+            }
+        }
+    }
+
+    private sealed record GroomerRestartOutcome(bool FirstStop, bool SecondStop);
+
+    private sealed record SingleGroomerOutcome(bool OneGroomerAfterRestart, bool Stopped, int GroomersAfterStop);
+
+    private sealed record ListenerRestartOutcome(bool Indexed, bool ListenerRan, bool ListenerOnGroomerThread, bool StopFromGroomer, bool OneGroomerAfterRestart, bool RestartedGroomerEvicted, bool Stopped, int GroomersAfterStop);
+
+    private sealed record SelfStopOutcome(bool Indexed, bool ListenerRan, bool StopFromGroomer, bool GroomerExited, bool StopAfterwards);
+
+    private sealed record OnDemandGroomOutcome(bool Indexed, bool Stopped, int EvictionsBeforeGroom, int EvictionsAfterGroom);
 }
