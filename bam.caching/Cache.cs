@@ -82,7 +82,7 @@ namespace Bam.Caching
     /// <seealso cref="Bam.Caching.Cache" />
     public class Cache: Loggable
 	{
-		bool _keepGrooming;
+		volatile bool _keepGrooming;
 		Thread _groomerThread = null!;
 		readonly ConcurrentQueue<CacheItem> _evictionQueue;
 
@@ -509,16 +509,17 @@ namespace Bam.Caching
 			
 			if(_groomerThread != null && _groomerThread.ThreadState == System.Threading.ThreadState.Running)
 			{
-				StopGrooming();
+				StopGroomer();
 			}
 
+			_keepGrooming = true;
 			_groomerThread = groomer.ExecuteInThread(new { Cache = this });
 
 			AppDomain.CurrentDomain.DomainUnload += (o, e) =>
 			{
 				if (_groomerThread.ThreadState == System.Threading.ThreadState.Running)
 				{
-					StopGrooming();
+					StopGroomer();
 				}
 			};
 		}
@@ -726,17 +727,32 @@ namespace Bam.Caching
 			}
 		}
 		
-		private void StopGrooming()
+		/// <summary>
+		/// Stops the background groomer started by <see cref="StartGroomer"/> and waits up to three
+		/// seconds for its thread to exit. The stop is cooperative: the groomer is woken through
+		/// <see cref="GroomerSignal"/> and leaves its loop on its own, because <see cref="Thread.Abort()"/>
+		/// is not supported on modern .NET. Items already cached are left alone, and
+		/// <see cref="StartGroomer"/> may be called again afterwards.
+		/// </summary>
+		/// <returns>true if no groomer thread is left running; false if it did not exit in time.</returns>
+		public bool StopGroomer()
 		{
-			try
+			_keepGrooming = false;
+			Thread groomerThread = _groomerThread;
+			if (groomerThread == null || !groomerThread.IsAlive)
 			{
-				_keepGrooming = false;
-				_groomerThread.Abort();
-				_groomerThread.Join(3000);
+				return true;
 			}
-			catch
+
+			GroomerSignal.Set();
+			if (groomerThread == Thread.CurrentThread)
 			{
+				// Called from the groomer itself (an eviction listener, say): it exits when it
+				// returns to its loop, and joining itself would only wait out the timeout.
+				return false;
 			}
+
+			return groomerThread.Join(3000);
 		}
 
         protected async void Organize()

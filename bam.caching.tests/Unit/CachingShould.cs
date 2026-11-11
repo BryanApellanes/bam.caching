@@ -365,4 +365,58 @@ public class CachingShould : UnitTestMenuContainer
         .SoBeHappy()
         .UnlessItFailed();
     }
+
+    [UnitTest]
+    public void StopTheBackgroundGroomer()
+    {
+        When.A<Cache>("stops its background groomer thread without Thread.Abort",
+            () => new Cache(true),
+            (cache) => cache.StopGroomer())
+        .TheTest
+        .ShouldPass<bool>((because, _, stopped) =>
+        {
+            because.ItsTrue("the groomer thread exited within the wait", stopped);
+        })
+        .SoBeHappy()
+        .UnlessItFailed();
+    }
+
+    [UnitTest]
+    public void ReportStoppedWhenNoGroomerWasStarted()
+    {
+        When.A<Cache>("is asked to stop a groomer it never started",
+            () => new Cache(false),
+            (cache) => cache.StopGroomer())
+        .TheTest
+        .ShouldPass<bool>((because, _, stopped) =>
+        {
+            because.ItsTrue("there is no groomer thread left running", stopped);
+        })
+        .SoBeHappy()
+        .UnlessItFailed();
+    }
+
+    [UnitTest]
+    public void RestartTheGroomerAfterStoppingIt()
+    {
+        When.A<Cache>("stops, restarts and stops its groomer again",
+            () => new Cache(true),
+            (cache) =>
+            {
+                bool firstStop = cache.StopGroomer();
+                cache.StartGroomer();
+                bool secondStop = cache.StopGroomer();
+                return new GroomerRestartOutcome(firstStop, secondStop);
+            })
+        .TheTest
+        .ShouldPass<GroomerRestartOutcome>((because, _, outcome) =>
+        {
+            because.ItsTrue("the first groomer stopped", outcome.FirstStop);
+            because.ItsTrue("the restarted groomer stopped", outcome.SecondStop);
+        })
+        .SoBeHappy()
+        .UnlessItFailed();
+    }
+
+    private sealed record GroomerRestartOutcome(bool FirstStop, bool SecondStop);
 }
